@@ -1,39 +1,73 @@
 
-Consistent Hashing
-CAP Theorem,
-Load Balancing, Caching, **Data Partitioning**, **Indexes**, Proxies,
-Queues, Replication,  SQL vs. NoSQL.
+# System design notes for “Grokking the System Design Interview”
 
 # Key Characteristics
 
 ## scalability
 
 - Horizontal scalling
+  - By adding more server into the pool.
 - vertical scaling
+  - By adding more resources, RAM, CPU, Storage.
+  
+scalability是不是在讨论DB的扩展？还是泛指其他的
+
+横向扩展就是加机器，组成集群？形成拓扑结构。多机器以后：
+
+- 怎么实现负载均衡？有的节点老旧，有的节点新。这种多样性又带来了异质性。那么均匀的负载均衡算法就不适用。
+- 如果要扩展DB，选什么？怎么设计？什么样的表？如何partition DB？如何DB replication?
+- 怎么搭集群，如何设计拓扑结构
+- 这份工作具体是谁完成的？
+
+scalability并不是单纯针对DB。scalability是指系统，你的所有设计target for increasing the scalability
 
 ## reliability
 
 - By definition, reliability is the probability a system will fail in a given period In simple terms, a distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
-- redundancy
-高可用
+
+redundancy 冗余设计是一个实现手段。
 
 ## availability
 
 - By definition, availability is the time a system remains operational to perform its required function in a specific period
+
+Reliability is **availability over time** considering the full range of possible
+real-world conditions that can occur.
+
+可靠性 = 可用性 * 时间
+所以可靠性的一定时可用性的。可用的，不一定是可靠的
+
 - availabilty VS reliability
   - reliability --> availabilty
-  - reliability <X- availabilty
+  - availabilty -X-> reliability
 
 ## efficiency
 
-- latency
-- bandwidth
+两种衡量方法
 
-## servicebility and manageability
+- latency： reponse time
+- bandwidth: throughput that denotes the number of items delivered in a given time limit.
+
+两种单位：
+
+- 系统节点发出的消息总数，
+- 发出消息的size。
+
+throught_put = message+cnt * message_size?
+
+quote:
+> 通过单位时间所生产的东西来计量，例如内存带宽（memory bandwidth）用来衡量内存系统的吞吐量，而对于Web系统，有这些度量单位：
+>
+>QPS（Queries Per Second）：用来衡量信息检索系统（如搜索引擎、数据库等）在1秒内的搜索流量
+>
+>RPS（Requests Per Second）：请求-响应系统（如Web服务器）每秒所能处理的最大请求数量
+>
+>TPS（Transactions Per Second）：广义上指在1秒内所能执行的原子操作数量，狭义上指DBMS在1秒所能执行的transaction数量
+
+## servicebility and manageability 可维护性
 
 - Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
-
-并发用户数 高并发？
+比如当出现故障时，自动打电话给相应的维护人员。
 
 # Load Balancing
 
@@ -105,7 +139,7 @@ Consistency of Cache <=> DB
 - MRU
 - RR(Random Replacement)
 
-## Code
+## LRU, LFU
 
 LRU
 LFU
@@ -236,10 +270,10 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
 ## Ref
 
-https://www.acodersjourney.com/10-questions-to-ask-yourself-before-choosing-a-nosql-database/
+<https://www.acodersjourney.com/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>
 
 <https://azure.microsoft.com/en-us/overview/nosql-database/>
-<https://cloud.netapp.com/blog azure-cvo-blg-azure-nosql-types-services-and-a-quick-tutorial>
+<<https://cloud.netapp.com/blog> azure-cvo-blg-azure-nosql-types-services-and-a-quick-tutorial>
 
 # CAP Theorem
 
@@ -256,8 +290,7 @@ Consistency or Availability.
 
 P(partition) + A(Availability) + C(Consistency) + Else + L(Latency) + C(Consistency)
 
-
-# Consistant hashing 
+# Consistant hashing
 
 # Long-Polling vs WebSocket vs Server-Sent events
 
@@ -265,9 +298,7 @@ P(partition) + A(Availability) + C(Consistency) + Else + L(Latency) + C(Consiste
 
 # Quorum
 
-
 # Leader and Follower
-
 
 # Heartbeat
 
@@ -306,12 +337,12 @@ Focus on some single part. Need more practice
 
 ## Identifying and resolving bottlenecks
 
-
 # Example: Design URL shorten service
 
-##  Requirement Clarification
+## Requirement Clarification
 
-##  Estimation 
+## Estimation
 
 read-heavy or write heavy?
 
+design

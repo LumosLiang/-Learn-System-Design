@@ -77,6 +77,14 @@ Load Balancer (LB) is another critical component of any distributed system.
 It helps to spread the traffic across a cluster of servers to improve
 **responsiveness** and **availability** of applications, websites or databases.
 
+>Single Point of Failure: If the server goes down or something happens to the server the whole ?application will be interrupted and it will unavailable for the users for a certain period. It will create a bad experience for users which is unacceptable for service providers.
+
+单点故障，一个点有问题导致的整个系统崩溃。
+
+>Overloaded Servers: There will be a limitation for the number of requests which a web server can handle. If the business grows and the number of requests increases the server will be overloaded. To solve the increasing number of requests we need to add a few more servers and we need to distribute the requests to the cluster of servers. 
+
+负载过重的服务器。
+
 集群:将多台服务器组成集群，使用负载均衡将请求转发到集群中，避免单一服务器的负载压力过大导致性能降低。
 
 ## Algorithm
@@ -91,23 +99,53 @@ This should regularly happening
 - Least Connection Method
   - when there are a large number of persistent client connections which are **unevenly** distributed between the servers.
 
-- Least Response Time Method
-- Least Bandwidth Method
+- Least Response Time Method > lowest response time
+- Least Bandwidth Method > the server who serve the least amount traffic 
 - Round Robin methond
-  - when the servers are of equal specification and there are not many persistent connections.
+  - when the servers are of **equal specification** and there are not many persistent connections.
 
 - Weighted Round Robin Method
+  - better handle the different specificatioin
+  
 - IP hash
+  - The load balancer routes requests from the same client to the same backend server as long as that server is available. 
+  - IP Hash ensures that requests from a particular client are always directed to the same backend server, as long as it is available.
+  - You cannot add a backend server marked as Backup to a backend set that uses the IP Hash policy.
 
 ### redundant LB
+
+LB can also be a SPF(single point of failure). 
+
+Add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
 
 ### Code and implementation
 
 <https://www.lintcode.com/problem/526/>]
 
+
+是什么？为什么需要？具体怎么实现？有什么样的问题？
+
 # Caching
 
 Caches take advantage of the locality of reference principle: recently requested data is likely to be requested again
+
+## 缓存的一些概念：
+- 缓存命中：当某个请求访问缓存得到相应时，称之为缓存命中
+- 最大空间：缓存通常位于内存中。因此缓存的空间一般不会特别大。
+- 清空策略：因此当缓存存放的数据量超过最大空间时，需要采取一定策略淘汰一些数据
+
+## 缓存的位置：
+
+缓存基本处于数据层前的任何一层。减少最终抵达数据库的请求。缓存通常用于最接近front end的层面。这样更快
+缓存的位置可以有（从进到远）：
+
+- 客户端缓存：浏览器缓存。HTTP缓存
+- 反向代理
+- Web 缓存：CDN
+- 应用层的本地缓存
+- 应用层的分布式缓存：Redis这种“键值存储”
+- 数据库的缓存：一些数据库有一些查询缓存。
+
 
 ## Application cache
 
@@ -115,14 +153,23 @@ What happens when you expand this to many nodes? If the request layer is
 expanded to multiple nodes, it’s still quite possible to have each node host its
 own cache. However, if your load balancer randomly distributes requests
 across the nodes, the same request will go to different nodes, thus increasing
-cache misses. Two choices for overcoming this hurdle are global caches and
-distributed caches.
+cache misses. Two choices for overcoming this hurdle are **global caches and
+distributed caches.**
 
-## CDN
+这里讲的就是本地缓存和分布式缓存
+
+>本地缓存：指的是在应用中的缓存组件，其最大的优点是应用和cache是在同一个进程内部，请求缓存非常快速，没有过多的网络开销等，在单应用不需要集群支持或者集群情况下各节点无需互相通知的场景下使用本地缓存较合适；同时，它的缺点也是应为缓存跟应用程序耦合，**多个应用程序无法直接的共享缓存**，**各应用或集群的各节点都需要维护自己的单独缓存，对内存是一种浪费**。
+
+>分布式缓存：指的是与**应用分离**的缓存组件或服务，其最大的优点是**自身就是一个独立的应用**，与本地应用隔离，多个应用可直接的共享缓存。
+
+
+## CDN -- Web缓存
 
 static media
 
-## Cache invalidation
+https://liuheihei.github.io/2019/08/23/%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%B8%8ECDN%E7%9A%84%E5%8C%BA%E5%88%AB/
+
+## Cache invalidation 缓存存在的问题
 
 Consistency of Cache <=> DB
 
@@ -143,6 +190,16 @@ Consistency of Cache <=> DB
 
 LRU
 LFU
+
+## Ref:
+https://tech.meituan.com/2017/03/17/cache-about.html 
+http://www.ayqy.net/blog/caching/
+
+
+
+## 不懂得地方
+缓存，反向代理，负载均衡
+
 
 # Data partitioning 不太会
 

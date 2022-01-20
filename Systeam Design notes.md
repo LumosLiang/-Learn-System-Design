@@ -1,6 +1,13 @@
 
 # System design notes for “Grokking the System Design Interview”
 
+系统设计学习笔记：
+
+- 这个东西是什么？-> 具体概念，算法
+- 为什么需要？-> 他用来解决什么样的问题，为什么需要它？
+- 具体怎么实现？-> 算法
+- 这样实现有什么样的问题？-> 不同实现之间，有什么优劣
+
 # Key Characteristics
 
 ## scalability
@@ -9,21 +16,26 @@
   - By adding more server into the pool.
 - vertical scaling
   - By adding more resources, RAM, CPU, Storage.
-  
-scalability是不是在讨论DB的扩展？还是泛指其他的
 
-横向扩展就是加机器，组成集群？形成拓扑结构。多机器以后：
+想法：
 
-- 怎么实现负载均衡？有的节点老旧，有的节点新。这种多样性又带来了异质性。那么均匀的负载均衡算法就不适用。
-- 如果要扩展DB，选什么？怎么设计？什么样的表？如何partition DB？如何DB replication?
-- 怎么搭集群，如何设计拓扑结构
-- 这份工作具体是谁完成的？
+    scalability是不是在讨论DB的扩展？还是泛指其他的 
+    
+    横向扩展就是加机器，组成集群？形成拓扑结构?
+    
+    多机器以后：
+
+    - 怎么实现负载均衡？有的节点老旧，有的节点新。这种多样性又带来了异质性。那么均匀的负载均衡算法就不适用。
+    - 如果要扩展DB，选什么？怎么设计？什么样的表？如何partition DB？如何DB replication?
+    - 怎么搭集群，如何设计拓扑结构
+    - 这份工作具体是谁完成的？
 
 scalability并不是单纯针对DB。scalability是指系统，你的所有设计target for increasing the scalability
+***
 
 ## reliability
 
-- By definition, reliability is the probability a system will fail in a given period In simple terms, a distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
+By definition, reliability is the probability a system will fail **in a given period** In simple terms, a distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
 
 redundancy 冗余设计是一个实现手段。
 
@@ -41,6 +53,8 @@ real-world conditions that can occur.
   - reliability --> availabilty
   - availabilty -X-> reliability
 
+***
+
 ## efficiency
 
 两种衡量方法
@@ -56,6 +70,7 @@ real-world conditions that can occur.
 throught_put = message+cnt * message_size?
 
 quote:
+
 > 通过单位时间所生产的东西来计量，例如内存带宽（memory bandwidth）用来衡量内存系统的吞吐量，而对于Web系统，有这些度量单位：
 >
 >QPS（Queries Per Second）：用来衡量信息检索系统（如搜索引擎、数据库等）在1秒内的搜索流量
@@ -64,43 +79,60 @@ quote:
 >
 >TPS（Transactions Per Second）：广义上指在1秒内所能执行的原子操作数量，狭义上指DBMS在1秒所能执行的transaction数量
 
+***
+
 ## servicebility and manageability 可维护性
 
 - Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
 比如当出现故障时，自动打电话给相应的维护人员。
 
+# Ref
+
+- <https://xie.infoq.cn/article/20c3ad1736d027615b12d6b20>
+- <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80.html#%E4%B8%80%E3%80%81%E6%80%A7%E8%83%BD>
+- <http://www.ayqy.net/blog/scalability_%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E7%AC%94%E8%AE%B01/>
+
 # Load Balancing
 
-## concept
+## Concept
 
 Load Balancer (LB) is another critical component of any distributed system.
 It helps to spread the traffic across a cluster of servers to improve
 **responsiveness** and **availability** of applications, websites or databases.
 
->Single Point of Failure: If the server goes down or something happens to the server the whole ?application will be interrupted and it will unavailable for the users for a certain period. It will create a bad experience for users which is unacceptable for service providers.
+## Why need?
+
+>Single Point of Failure: If the server goes down or something happens to the server the whole application will be interrupted and it will unavailable for the users for a certain period. It will create a bad experience for users which is unacceptable for service providers.
 
 单点故障，一个点有问题导致的整个系统崩溃。
 
->Overloaded Servers: There will be a limitation for the number of requests which a web server can handle. If the business grows and the number of requests increases the server will be overloaded. To solve the increasing number of requests we need to add a few more servers and we need to distribute the requests to the cluster of servers. 
+>Overloaded Servers: There will be a limitation for the number of requests which a web server can handle. If the business grows and the number of requests increases the server will be overloaded. To solve the increasing number of requests we need to add a few more servers and we need to distribute the requests to the cluster of servers.
 
 负载过重的服务器。
 
 集群:将多台服务器组成集群，使用负载均衡将请求转发到集群中，避免单一服务器的负载压力过大导致性能降低。
 
-## Algorithm
+LB可以带来：
+
+- 终端用户可以体验更好：更快，无中断的服务
+- 更少的downtime的时间。
+- SMART的LB可以提供business insight
+- 对于Systeam admin，更易于manage
+
+## How to 怎么做?
 
 ### Health Check
 
 to make sure that the server in the pool are healthy. If not healthy, it will be removed
 This should regularly happening
 
-### algorithms
+### Algorithms
 
 - Least Connection Method
   - when there are a large number of persistent client connections which are **unevenly** distributed between the servers.
 
 - Least Response Time Method > lowest response time
-- Least Bandwidth Method > the server who serve the least amount traffic 
+- Least Bandwidth Method > the server who serve the least amount traffic
 - Round Robin methond
   - when the servers are of **equal specification** and there are not many persistent connections.
 
@@ -108,33 +140,50 @@ This should regularly happening
   - better handle the different specificatioin
   
 - IP hash
-  - The load balancer routes requests from the same client to the same backend server as long as that server is available. 
+  - The load balancer routes requests from the same client to the same backend server as long as that server is available.
   - IP Hash ensures that requests from a particular client are always directed to the same backend server, as long as it is available.
   - You cannot add a backend server marked as Backup to a backend set that uses the IP Hash policy.
 
-### redundant LB
+### Other
 
-LB can also be a SPF(single point of failure). 
+redundant LB
+
+LB can also be a SPF(single point of failure).
 
 Add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
 
-### Code and implementation
+同时，LB可以在多层去做:
+
+- client
+- client and web
+- web and application or cache
+- application and DB
+
+### More specific， more practicle
+
+L4, L7 load balance
+
+## Code and implementation
 
 <https://www.lintcode.com/problem/526/>]
-
-
-是什么？为什么需要？具体怎么实现？有什么样的问题？
 
 # Caching
 
 Caches take advantage of the locality of reference principle: recently requested data is likely to be requested again
 
-## 缓存的一些概念：
+## 缓存的一些概念
+
 - 缓存命中：当某个请求访问缓存得到相应时，称之为缓存命中
 - 最大空间：缓存通常位于内存中。因此缓存的空间一般不会特别大。
 - 清空策略：因此当缓存存放的数据量超过最大空间时，需要采取一定策略淘汰一些数据
 
-## 缓存的位置：
+## why?
+
+提高效率，不浪费资源。利用缓存层来吸收不均匀的负载和流量高峰：
+
+> Popular items can skew the distribution, causing bottlenecks. Putting a cache in front of a database can help absorb uneven loads and spikes in traffic.
+
+## 怎么做？--缓存的位置
 
 缓存基本处于数据层前的任何一层。减少最终抵达数据库的请求。缓存通常用于最接近front end的层面。这样更快
 缓存的位置可以有（从进到远）：
@@ -146,8 +195,7 @@ Caches take advantage of the locality of reference principle: recently requested
 - 应用层的分布式缓存：Redis这种“键值存储”
 - 数据库的缓存：一些数据库有一些查询缓存。
 
-
-## Application cache
+### Application cache
 
 What happens when you expand this to many nodes? If the request layer is
 expanded to multiple nodes, it’s still quite possible to have each node host its
@@ -162,22 +210,24 @@ distributed caches.**
 
 >分布式缓存：指的是与**应用分离**的缓存组件或服务，其最大的优点是**自身就是一个独立的应用**，与本地应用隔离，多个应用可直接的共享缓存。
 
+### CDN -- Web缓存
 
-## CDN -- Web缓存
+static media:
 
-static media
+<https://liuheihei.github.io/2019/08/23/%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%B8%8ECDN%E7%9A%84%E5%8C%BA%E5%88%AB/>
 
-https://liuheihei.github.io/2019/08/23/%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%B8%8ECDN%E7%9A%84%E5%8C%BA%E5%88%AB/
+## 缓存存在的问题
 
-## Cache invalidation 缓存存在的问题
+### Cache invalidation
 
 Consistency of Cache <=> DB
 
+- cache-aside
 - write-through cache
 - write-around cache
 - write-back cache
   
-## Cache **eviction** policies
+### Cache **eviction** policies
 
 - FIFO
 - LIFO
@@ -191,15 +241,14 @@ Consistency of Cache <=> DB
 LRU
 LFU
 
-## Ref:
-https://tech.meituan.com/2017/03/17/cache-about.html 
-http://www.ayqy.net/blog/caching/
+## Ref
 
-
+<https://tech.meituan.com/2017/03/17/cache-about.html>
+<http://www.ayqy.net/blog/caching/>
 
 ## 不懂得地方
-缓存，反向代理，负载均衡
 
+缓存，反向代理，负载均衡真正的区别
 
 # Data partitioning 不太会
 
@@ -267,17 +316,53 @@ When CRUD happen, index are also need to be updated.
 
 # Proxy
 
-Typically, proxies are used to **filter requests, log requests, or transform requests (by adding/removing headers, encrypting/decrypting, or compressing a resource)**. Another advantage of a proxy server is that its cache can serve a lot of requests. If multiple clients access a particular resource, the proxy server can cache it and serve it to all the clients without going to the remote server
+## 是什么？
 
-## Types
+Typically, proxies are used to **filter requests, log requests, or transform requests (by adding/removing headers, encrypting/decrypting, or compressing a resource)**.
 
-### Open proxy
+Another advantage of a proxy server is that its cache can serve a lot of requests. If multiple clients access a particular resource, the proxy server can cache it and serve it to all the clients without going to the remote server
 
-### Reverse Proxy
+## 为什么？有啥作用
 
-retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
+应该说，放在不同位置的代理，或者不同类别的代理作用应该都各不相同。
+正向的：
+
+- log request: fiddler
+- 保护客户端或者保护服务器
+- 访问内网
+- 加密：v2ray :)
+- 代理翻墙
+
+反向的：见下
+
+## 不同的类别
+
+- Open proxy: 面向公众的，任何人都可以访问的正向代理
+- Anonymous proxy: 匿名代理, 不公开客户端原始IP地址的代理服务
+- 透明代理: 不作任何修改，一般用作网关，路由器。
+
+- Reverse Proxy
+
+  > retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
+
+  如何理解反向搭理？
+  - 反向代理是和服务器密切相关的。
+  - 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
+  - 正向代理知道客户端，不了解服务器；反向代理知道服务器，不了解客户端
+  - 反向代理可以保护内网服务器，不为外界所知
+  - 就可以把反向代理理解成“服务器作为客户端的正向代理”
+
+  反向代理的作用：
+  - 加密
+  - 负载均衡
+  - 缓存
+  - 安全防护
+  - 访问控制
+  - 托管静态内容
 
 # Redundancy and Replication
+
+## What is?
 
 redundancy
 
@@ -288,6 +373,42 @@ redundancy
 Replication
 
 sharing information to ensure consistency between redundant resources
+尤其是在DB上。
+
+## 用来做什么？
+
+提升可靠性，包括性能。
+
+## 怎么做？
+
+### 一致性问题
+
+- 强一致性（Strong consistency）：写完之后，立即就能读到
+- 最终一致性（Eventual consistency）：写完之后，保证最终能读到
+- 弱一致性（Weak consistency）：写完之后，不一定能读到
+
+### 怎么复制
+
+- 异步复制
+  - 优势：无需等待复制完成，性能没有太大影响
+  - 劣势:
+    - 无法保证强一致性
+    - 数据丢失
+  
+- 同步复制
+  - 优势
+    - 强一致性
+  - 劣势
+    - 一挂全挂
+    - 性能问题
+
+- 半同步复制
+
+### 结构
+
+- 一主多从
+- 多主多从
+- 无主多从
 
 # SQL and NoSQL
 

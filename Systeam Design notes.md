@@ -91,6 +91,7 @@ quote:
 - <https://xie.infoq.cn/article/20c3ad1736d027615b12d6b20>
 - <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80.html#%E4%B8%80%E3%80%81%E6%80%A7%E8%83%BD>
 - <http://www.ayqy.net/blog/scalability_%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E7%AC%94%E8%AE%B01/>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/design-principles/redundancy>
 
 # Load Balancing
 
@@ -163,9 +164,17 @@ Add another LB to form a cluster. Each monitor the health of the other. Once the
 
 L4, L7 load balance
 
+- L4， L7 各自是什么？
+- 各自的好处与坏处
+
 ## Code and implementation
 
-<https://www.lintcode.com/problem/526/>]
+<https://www.lintcode.com/problem/526/>
+
+## ref
+
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview>
+- <http://www.ayqy.net/blog/load-balancing/>
 
 # Caching
 
@@ -238,81 +247,162 @@ Consistency of Cache <=> DB
 
 ## LRU, LFU
 
-LRU
-LFU
+- LRU: <https://leetcode.com/problems/lru-cache/>
+- LFU
 
 ## Ref
 
-<https://tech.meituan.com/2017/03/17/cache-about.html>
-<http://www.ayqy.net/blog/caching/>
+- <https://tech.meituan.com/2017/03/17/cache-about.html>
+- <http://www.ayqy.net/blog/caching/>
+- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/caching>
+- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/cdn>
+- <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98.html#%E4%B8%80%E3%80%81%E7%BC%93%E5%AD%98%E7%89%B9%E5%BE%81>
 
-## 不懂得地方
+# Data partitioning
 
-缓存，反向代理，负载均衡真正的区别
+## 是什么？
 
-# Data partitioning 不太会
+将单库分区。
 
-## Partitioning Methods
+## 为什么？
 
-### Horizaontal Partitioning
+- 单库存在读写查找上的性能瓶颈。
+- 即使复制方案下，基于每一个数据库都有一份完整数据的情况，性能瓶颈依然存在。还在限制系统的扩展性和性能。
+  - 容量有限。数据量大到单库无法容纳
+  - 性能有限。查询更新慢
+
+## 怎么做？如何分区？
+
+### Partitioning Methods
+
+#### Horizaontal Partitioning -> **AKA Sharding(分片)**
+
+它是：
 
 - put different rows into different tables.
-- Also Known as data sharding
-- not even distrubuted range
+- Also Known as **data sharding**
+- 每一片都是原数据的一个子集
 
-### Vertical Partitioning
+它怎么好：
+
+- schema保持不变，每一片的表结构完全一致
+- 减少了资源争用，有助于提升性能
+
+它怎么不好：
+
+- 要合理地选择分区的key --> shared key, 来确保流量可以被尽可能均匀的分散到每一个片上。
+- 这里并不是数据量，而是流量
+
+#### Vertical Partitioning
+
+它是：
 
 - partitioning by columns
-- not be possible for a single server to handle all the metadata queries for 10
-billion photos by 140 million users
 
-### Directory-Based partitioning
+它怎么好：
+
+- 根据不同的业务需求，可以把信息分的更细。
+  - 比如，不太经常变化的数据，放到缓存里。
+  - 照片这种大型内容拆出去单独存放：instagram? 等等
+  - 或者对部分敏感的列拆出来，做更有针对性的安全控制。
+  - 降低访问量。
+
+它怎么不好：
+
+- 即使是垂直分区，当业务量不断增长的时候，可能也总有一天要再次把这种“feature specific DB”再次分到多个不同的server上。
+  - E.g it is not be possible for a single server to handle all the metadata queries for 10 billion photos by 140 million users
+
+#### 按功能分区
+
+#### 补充：Directory-Based partitioning
 
 lookup service that knows your current partitioning scheme and abstracts it away from the DB access code
 
-## Partitioning Criteria
+### Partitioning Criteria
 
 when insert data, based on which criteria that we should follow to insert this record into relevant partitioning
 
-### Key or hash-based Partitioning
+#### Key or hash-based Partitioning
 
 - hashing: hash(ID) % DB_count
 - consistant hashing
 
-### List Partitioning
+#### List Partitioning
 
 each partition is assigned a list of
 values, so whenever we want to insert a new record, we will see which
 partition contains our key and then store it there.
 
-### Round-Robin
+#### Round-Robin
 
 i mod n
 
-### Composite Partitoning
+#### Composite Partitoning
 
 Under this scheme, we combine any of the above partitioning schemes to devise a new scheme.
 
-## Common Problems of Data Partitioning ??
+## 为什么好？为什么不好？Common Problems of Data Partitioning ?
 
-### join and denormalization
+### 怎么好？
 
-反范式化
+- Improve scalability
+- Performance
+- Security
+- Operational flexibility
+- Match the data store to the pattern of use
+  - or example, large binary data can be stored in blob storage, while more structured data can be held in a document database
+- availability
+  
+### 怎么不好？
+
+大多数都是由于跨分区查询操作造成的
+
+#### join and denormalization
+
+什么是范式？三大总则。
+
+>1NF：第一范式（First normal form）要求数据表中每个字段的值都不可再分
+
+>2NF：第二范式（Second normal form）在满足 1NF 的基础上，要求所有非主属性都完全依赖于其主键
+
+>3NF：第三范式（Third normal form）在满足 2NF 的基础上，要求所有非主属性都不传递依赖于任何主键
+
+<https://segmentfault.com/a/1190000013695030>
+
+以及什么是反范式化
 <http://www.ayqy.net/blog/database-denormalization/>
 
 ### Referential Integrity
 
+enforce data intergirty constraints such as foreign keys in a partitioned database can be extremely difficult
+
 ### Rebalancing
 
-# Index 不太会
+when there is more DB partitions, we sometimes have to consider rebalancing issues.
+This require downtime. A directory-based partitioning could help, but the node of this one can also be a Single point of failure.
 
-seem like a hash to a specific column for improving the query performance
+ref:
+
+- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/data-partitioning>
+- <http://www.ayqy.net/blog/database-partitioning/>
+
+# Index
+
+Catalog 目录，
+一个B树。m阶多叉树
+写一个B树就基本可以理解index是什么，底层怎么做，以及好处坏处。
 
 ## Index decrease write performance
 
 When CRUD happen, index are also need to be updated.
 
     If the goal of the database is to provide a data store that is often written to and rarely read from, in that case, decreasing the performance of the more common operation, which is writing, is probably not worth the increase in performance we get from reading.
+
+## Ref
+
+- <https://en.wikipedia.org/wiki/B-tree>
+- <https://docs.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver15>
+- <https://docs.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver15>
 
 # Proxy
 
@@ -360,6 +450,13 @@ Another advantage of a proxy server is that its cache can serve a lot of request
   - 访问控制
   - 托管静态内容
 
+## Ref
+
+- <http://www.ayqy.net/blog/reverse-proxy/>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
+
+-
+
 # Redundancy and Replication
 
 ## What is?
@@ -372,12 +469,17 @@ redundancy
 
 Replication
 
-sharing information to ensure consistency between redundant resources
-尤其是在DB上。
+sharing information to ensure **consistency** between redundant resources
+
+复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
+
+> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
 
 ## 用来做什么？
 
-提升可靠性，包括性能。
+提升可靠性，
+
+包括性能？性能提高体现在哪里？
 
 ## 怎么做？
 
@@ -412,7 +514,11 @@ sharing information to ensure consistency between redundant resources
 
 # SQL and NoSQL
 
-## SQL
+## 是什么
+
+### SQL
+
+关系型数据库，提供的数据存储，检索机制是基于表关系建模的。
 
 store data in rows and columns. Each row contains all
 the information about one entity and each column contains all the separate
@@ -420,38 +526,65 @@ data points.
 
 MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
-## No-SQL
+### No-SQL
 
-| Type      | Concept | Example |
-| ----------- | ----------- | ----------- |
-| key-Value   | Data is stored in an array of key-value pairs  | Redis, Voldemort, and Dynamo  |
-| Document Database  | data is stored in documents (instead of rows and columns in a table) and these documents are grouped together in collections        | MongoDB       |
-| Wide-Column Databases  |  columnar databases we have column families, which are containers for rows.    | Cassandra   |
-| Graph | These databases are used to store data whose relations are best represented in a graph   | Neo4J  |
+- 非关系型数据库。提供的数据存储，检索机制并不是基于表关系建模的。
+- 在关系型数据库之外的广阔世界里，数据不一定非要打平存放到二维表格里，关系也不是只能用**主键、外键、关系表**来描述
+- 从数据库类型类型来看，有很多no-sql的DB
+- 从实践角度来看，用NoSQL的方式使用MySQL数据库也算
+  - 比如在数据表中存一列 JSON 字符串，把这一列当作键值数据库来用
 
-## Difference
+#### No-Sql比较
+
+| Type      | Concept | Example | Apply to
+| ----------- | ----------- | ----------- | ----------- |
+| key-Value   | Data is stored in an array of key-value pairs <br> 类似一个 hash表  |   Redis, Voldemort, and Dynamo  | 用于简单、或者频繁更改的数据，经常用作内存缓存
+| Document Database  | 1. data is stored in documents，比如JSON，XML (instead of rows and columns in a table) and these documents are grouped together in collections。<br> 2. **可以理解为增强型的键值存储** <br> 3. 与键值存储最大的区别在于数据库能够理解并处理所存储的值（即文档）  | MongoDB， CouchDB | 适用于持久化存储，用来存放**不经常更改**的数据，作为关系型数据库的一般替代方案 |
+| Wide-Column Databases  |  1. Concept: column, super column, column families, super column families. <br> 2. 本质是二维MAP。<br> 3. 高性能以及良好的扩展性 | Cassandra, HBase   | 适用于非常大的数据集，被 Twitter、Facebook 等社交网络用来存储海量用户所产生的数据 |
+| Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
+
+## 怎么用？
+
+- 使用no-sql的话，就把一部分的工作从数据库转移到了应用层面。
+- 应用层更容易横向扩展，这种转移有助于提升系统的可扩展性
+
+## 有什么问题
+
+### basic difference
 
 | Type      | SQL | No-SQL |
 | ----------- | ----------- | ----------- |
 | Schema | fixed  | Dynamic  |
-| Querying | SQL | Different syntax for using UnQL(Unstructured Query Language) |
+| Querying | SQL | Different syntax for using UnSQL(Unstructured Query Language) |
 | Scalability  | mostly Vertically  | horizontally |
 | Reliability/ACID? | Good | Not good |
+|
 
-## Which one to use
+### 用什么
 
-| SQL | No-SQL |
-| ----------- | ----------- |
-| ensure ACID compliance  | Storing large volumes of data that often have little to no structure  |
-| data is structured and unchanging | Making the most of cloud computing and storage |
-| | Rapid development |
+| Pro & Cons | SQL | No-SQL |
+| ----------- | ----------- | ----------- |
+| Advantage | 1. ensure ACID compliance <br> 2. 明确的扩展模式<br> 3. community support | 1. 易于扩展 <br> 2. 无需复杂的连表查询 <br> 3. 与OOP一致，易于使用 <br> 4. 无需预先定义，修改成本低 5. 读写性能高， 大数据 |
+| Disadvantage | 1.复杂的连表查询导致数据读取性能不佳 <br> 2. 不方便扩展 <br> 3. 关系模型和OOP有差异 <br> 4. 只支持存取结构化数据，关系模式（如表结构）必须预先定义，并且修改成本高 | 1.缺乏强一致性的保证 <br> 2. less community support |
+|
+
+> NoSQL 数据库适用于：
+>
+> - **快速变化的**数据，如点击流（click stream）数据或日志数据
+> - 排行榜或评分数据
+> - 临时数据，如购物车数据
+> - 频繁访问的热点数据
+> - 元数据（metadata），以及查找表（lookup tables）
 
 ## Ref
 
-<https://www.acodersjourney.com/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>
-
-<https://azure.microsoft.com/en-us/overview/nosql-database/>
-<<https://cloud.netapp.com/blog> azure-cvo-blg-azure-nosql-types-services-and-a-quick-tutorial>
+- <<https://www.acodersjourney.com/>
+- <http://www.ayqy.net/blog/nosql/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-decision-tree>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-considerations>
+- <http://www.ayqy.net/blog/nosql/>
+- <https://blog.mlab.com/2012/08/why-is-mongodb-wildly-popular/>
 
 # CAP Theorem
 

@@ -10,11 +10,11 @@
 
 # Key Characteristics
 
-## scalability
+## scalability 扩展性/伸缩性
 
 - Horizontal scalling
   - By adding more server into the pool.
-- vertical scaling
+- Vertical scaling
   - By adding more resources, RAM, CPU, Storage.
 
 想法：
@@ -25,21 +25,25 @@
     
     多机器以后：
 
-    - 怎么实现负载均衡？有的节点老旧，有的节点新。这种多样性又带来了异质性。那么均匀的负载均衡算法就不适用。
+    - 怎么实现负载均衡？有的节点老旧，有的节点新。
+      - 这种多样性又带来了异质性。那么均匀的负载均衡算法就不适用。
     - 如果要扩展DB，选什么？怎么设计？什么样的表？如何partition DB？如何DB replication?
     - 怎么搭集群，如何设计拓扑结构
     - 这份工作具体是谁完成的？
 
-scalability并不是单纯针对DB。scalability是指系统，你的所有设计target for increasing the scalability
+Scalability并不是单纯针对DB。Scalability是指系统，你的所有设计target for increasing the scalability
+
 ***
 
-## reliability
+## Reliability 可靠
 
-By definition, reliability is the probability a system will fail **in a given period** In simple terms, a distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
+By definition, reliability is the probability a system will fail **in a given period**. In simple terms, a distributed system is considered reliable if it keeps delivering its services even when one or several of its software or hardware components fail.
 
-redundancy 冗余设计是一个实现手段。
+redundancy 冗余设计是一个实现reliabled的手段。
 
-## availability
+***
+
+## Availability 可用
 
 - By definition, availability is the time a system remains operational to perform its required function in a specific period
 
@@ -47,6 +51,7 @@ Reliability is **availability over time** considering the full range of possible
 real-world conditions that can occur.
 
 可靠性 = 可用性 * 时间
+
 所以可靠性的一定时可用性的。可用的，不一定是可靠的
 
 - availabilty VS reliability
@@ -55,7 +60,7 @@ real-world conditions that can occur.
 
 ***
 
-## efficiency
+## Efficiency
 
 两种衡量方法
 
@@ -64,10 +69,10 @@ real-world conditions that can occur.
 
 两种单位：
 
-- 系统节点发出的消息总数，
+- 系统节点发出的消息总数
 - 发出消息的size。
 
-throught_put = message+cnt * message_size?
+throught_put = message + cnt * message_size?
 
 quote:
 
@@ -81,7 +86,7 @@ quote:
 
 ***
 
-## servicebility and manageability 可维护性
+## Servicebility and manageability 可维护性
 
 - Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
 比如当出现故障时，自动打电话给相应的维护人员。
@@ -103,28 +108,34 @@ It helps to spread the traffic across a cluster of servers to improve
 
 ## Why need?
 
+1.
 >Single Point of Failure: If the server goes down or something happens to the server the whole application will be interrupted and it will unavailable for the users for a certain period. It will create a bad experience for users which is unacceptable for service providers.
 
 单点故障，一个点有问题导致的整个系统崩溃。
 
+2.
 >Overloaded Servers: There will be a limitation for the number of requests which a web server can handle. If the business grows and the number of requests increases the server will be overloaded. To solve the increasing number of requests we need to add a few more servers and we need to distribute the requests to the cluster of servers.
 
 负载过重的服务器。
 
+## How to 怎么做?
+
 集群:将多台服务器组成集群，使用负载均衡将请求转发到集群中，避免单一服务器的负载压力过大导致性能降低。
 
-LB可以带来：
+LB可以在多层去做:
 
-- 终端用户可以体验更好：更快，无中断的服务
-- 更少的downtime的时间。
-- SMART的LB可以提供business insight
-- 对于Systeam admin，更易于manage
+- client
+- client and web
+- web and application or cache
+- application and DB
 
-## How to 怎么做?
+Redundant LB
+
+Because LB can also be a SPF(single point of failure). We can add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
 
 ### Health Check
 
-to make sure that the server in the pool are healthy. If not healthy, it will be removed
+To make sure that the server in the pool are healthy. If not healthy, it will be removed
 This should regularly happening
 
 ### Algorithms
@@ -145,33 +156,25 @@ This should regularly happening
   - IP Hash ensures that requests from a particular client are always directed to the same backend server, as long as it is available.
   - You cannot add a backend server marked as Backup to a backend set that uses the IP Hash policy.
 
-### Other
-
-redundant LB
-
-LB can also be a SPF(single point of failure).
-
-Add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
-
-同时，LB可以在多层去做:
-
-- client
-- client and web
-- web and application or cache
-- application and DB
-
-### More specific， more practicle
+### More specific
 
 L4, L7 load balance
 
 - L4， L7 各自是什么？
 - 各自的好处与坏处
+  - L4, simple and quick?
+  - L7, more info, more insight, better load-balance
 
-## Code and implementation
+## LB 怎么好？
 
-<https://www.lintcode.com/problem/526/>
+LB可以带来：
 
-## ref
+- 终端用户可以体验更好：更快，无中断的服务
+- 更少的downtime的时间。
+- SMART的LB可以提供business insight
+- 对于Systeam admin，更易于manage
+  
+## Ref
 
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview>
 - <http://www.ayqy.net/blog/load-balancing/>
@@ -186,7 +189,7 @@ Caches take advantage of the locality of reference principle: recently requested
 - 最大空间：缓存通常位于内存中。因此缓存的空间一般不会特别大。
 - 清空策略：因此当缓存存放的数据量超过最大空间时，需要采取一定策略淘汰一些数据
 
-## why?
+## 为什么需要缓存?
 
 提高效率，不浪费资源。利用缓存层来吸收不均匀的负载和流量高峰：
 
@@ -245,7 +248,7 @@ Consistency of Cache <=> DB
 - MRU
 - RR(Random Replacement)
 
-## LRU, LFU
+## Code sample: LRU, LFU
 
 - LRU: <https://leetcode.com/problems/lru-cache/>
 - LFU
@@ -290,7 +293,7 @@ Consistency of Cache <=> DB
 
 它怎么不好：
 
-- 要合理地选择分区的key --> shared key, 来确保流量可以被尽可能均匀的分散到每一个片上。
+- 要合理地选择分区的key --> shared key, 来确保流量可以被尽可能**均匀**的分散到每一个片上。
 - 这里并不是数据量，而是流量
 
 #### Vertical Partitioning
@@ -314,13 +317,17 @@ Consistency of Cache <=> DB
 
 #### 按功能分区
 
+When it's possible to identify a **bounded context** for each distinct business area in an application, functional partitioning is a way to improve isolation and data access performance.
+
+Another common use for functional partitioning is to separate **read-write data** from **read-only data**.
+
 #### 补充：Directory-Based partitioning
 
-lookup service that knows your current partitioning scheme and abstracts it away from the DB access code
+This is lookup service that knows your current partitioning scheme and abstracts it away from the DB access code
 
-### Partitioning Criteria
+### 如何insert Data? -> Partitioning Criteria
 
-when insert data, based on which criteria that we should follow to insert this record into relevant partitioning
+When insert data, based on which criteria that we should follow to insert this record into relevant partitioning
 
 #### Key or hash-based Partitioning
 
@@ -370,11 +377,12 @@ Under this scheme, we combine any of the above partitioning schemes to devise a 
 <https://segmentfault.com/a/1190000013695030>
 
 以及什么是反范式化
+
 <http://www.ayqy.net/blog/database-denormalization/>
 
 ### Referential Integrity
 
-enforce data intergirty constraints such as foreign keys in a partitioned database can be extremely difficult
+Enforce data intergirty constraints such as foreign keys in a partitioned database can be extremely difficult
 
 ### Rebalancing
 
@@ -408,7 +416,12 @@ When CRUD happen, index are also need to be updated.
 
 ## 是什么？
 
-Typically, proxies are used to **filter requests, log requests, or transform requests (by adding/removing headers, encrypting/decrypting, or compressing a resource)**.
+Typically, proxies are used to:
+
+- Filter requests
+- Log requests
+- Transform requests
+  - (by adding/removing headers, encrypting/decrypting, or compressing a resource).
 
 Another advantage of a proxy server is that its cache can serve a lot of requests. If multiple clients access a particular resource, the proxy server can cache it and serve it to all the clients without going to the remote server
 
@@ -455,7 +468,6 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - <http://www.ayqy.net/blog/reverse-proxy/>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
 
--
 
 # Redundancy and Replication
 
@@ -538,7 +550,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
 | Type      | Concept | Example | Apply to
 | ----------- | ----------- | ----------- | ----------- |
-| key-Value   | Data is stored in an array of key-value pairs <br> 类似一个 hash表  |   Redis, Voldemort, and Dynamo  | 用于简单、或者频繁更改的数据，经常用作内存缓存
+| key-Value   | Data is stored in an array of key-value pairs <br> 类似一个 hash表  |   Redis, Voldemort, and Dynamo  | 用于简单、或者频繁更改的数据，经常用作**内存缓存**
 | Document Database  | 1. data is stored in documents，比如JSON，XML (instead of rows and columns in a table) and these documents are grouped together in collections。<br> 2. **可以理解为增强型的键值存储** <br> 3. 与键值存储最大的区别在于数据库能够理解并处理所存储的值（即文档）  | MongoDB， CouchDB | 适用于持久化存储，用来存放**不经常更改**的数据，作为关系型数据库的一般替代方案 |
 | Wide-Column Databases  |  1. Concept: column, super column, column families, super column families. <br> 2. 本质是二维MAP。<br> 3. 高性能以及良好的扩展性 | Cassandra, HBase   | 适用于非常大的数据集，被 Twitter、Facebook 等社交网络用来存储海量用户所产生的数据 |
 | Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
@@ -566,7 +578,6 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 | ----------- | ----------- | ----------- |
 | Advantage | 1. ensure ACID compliance <br> 2. 明确的扩展模式<br> 3. community support | 1. 易于扩展 <br> 2. 无需复杂的连表查询 <br> 3. 与OOP一致，易于使用 <br> 4. 无需预先定义，修改成本低 5. 读写性能高， 大数据 |
 | Disadvantage | 1.复杂的连表查询导致数据读取性能不佳 <br> 2. 不方便扩展 <br> 3. 关系模型和OOP有差异 <br> 4. 只支持存取结构化数据，关系模式（如表结构）必须预先定义，并且修改成本高 | 1.缺乏强一致性的保证 <br> 2. less community support |
-|
 
 > NoSQL 数据库适用于：
 >
@@ -578,7 +589,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
 ## Ref
 
-- <<https://www.acodersjourney.com/>
+- <https://www.acodersjourney.com/>
 - <http://www.ayqy.net/blog/nosql/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-decision-tree>
@@ -588,18 +599,77 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
 # CAP Theorem
 
-C: consistency -> all nodes see the same data at same time
-A: Availability -> every request receive by non-failing node must result in a response
-P: Partition -> communication break (or a network failure) between any two nodes in the system
+## 是什么？
 
-CAP is a "three choices, pick two" scenario.
-In the presence of
-a network partition, a distributed system must choose either
-Consistency or Availability.
+什么是一致性？
+
+- 弱一致性（最弱）
+  - 写完不一定能读到, 比如游戏，视频，网络电话。
+- 最终一致性
+  - 写完，异步复制，最终可以读到，比如Email, DNS
+- 强一致性 最强
+  - 写完，立刻同步，立即能读到，文件系统。
+
+什么是可用性？
+
+- 第一节有提到
+- https://azure.microsoft.com/en-us/support/legal/sla/summary/
+
+- C: consistency -> all nodes see the same data at same time 每次读取都能得到最新写入的结果，抑或出错
+- A: Availability -> every request receive by non-failing node must result in a response 每个请求都能收到正常响应，但不保证返回的是最新信息
+- P: Partition -> communication break (or a network failure) between any two nodes in the system 即便有一部分由于网络故障down掉了，系统仍能继续运行
+
+## 为什么？
+
+系统设计中也面临许多权衡取舍：
+
+- 性能与可扩展性
+  - 服务可以通过加资源的方式成比例的提升性能
+  - 但资源也会引入多样性。新旧节点的不同引起的异质性会影响性能
+- 延迟与吞吐量
+  - 吞吐量是指单位时间内所能处理的操作数
+  - 无法兼具低延迟和高吞吐量，所以可能权衡的原则是：在一定延迟的情况下，尽可能追求最大的吞吐量
+- 可用性与一致性
+  - 即本节要讨论的内容
+
+## 怎么做
+
+CAP is a "three choices, pick two" scenario. In the presence of a network partition,a distributed system must choose either Consistency or Availability:
+
+- choose consistency: 当网络不完全可靠，出现故障，取消操作，保证一致性，但会降低可用性，用户可能会收到超时错误
+- choose availability: 保证可用，返回旧信息。但是这不是一致的
+
+## 有什么问题？
+
+当没有network partitions的时候怎么选？
+其次，保证可用的情况下，如果需要很长时间返回，虽然可用，但是业务可能无法接受。
+大部分情况下，分区是平稳运行的，并不会出错，这时候该怎么选？
 
 # PACELC Theorem
 
-P(partition) + A(Availability) + C(Consistency) + Else + L(Latency) + C(Consistency)
+## 是什么
+
+P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency) + C(Consistency)
+
+## 为什么
+
+实践指导理论，理论指导实践
+
+## 怎么做？
+
+> Dynamo and Cassandra are PA/EL systems: 
+> They choose availability over consistency when a partition occurs; otherwise, they choose lower latency.
+> 
+> BigTable and HBase are PC/EC systems: 
+> They will always choose consistency, giving up availability and lower latency
+> 
+> MongoDB can be considered PA/EC (default configuration)
+
+不同的数据库可以实现不同的配置
+
+Ref:
+https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052
+
 
 # Consistant hashing
 

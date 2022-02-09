@@ -468,7 +468,6 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - <http://www.ayqy.net/blog/reverse-proxy/>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
 
-
 # Redundancy and Replication
 
 ## What is?
@@ -523,6 +522,11 @@ sharing information to ensure **consistency** between redundant resources
 - 一主多从
 - 多主多从
 - 无主多从
+
+
+## Quorum
+
+
 
 # SQL and NoSQL
 
@@ -613,7 +617,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 什么是可用性？
 
 - 第一节有提到
-- https://azure.microsoft.com/en-us/support/legal/sla/summary/
+- <https://azure.microsoft.com/en-us/support/legal/sla/summary/>
 
 - C: consistency -> all nodes see the same data at same time 每次读取都能得到最新写入的结果，抑或出错
 - A: Availability -> every request receive by non-failing node must result in a response 每个请求都能收到正常响应，但不保证返回的是最新信息
@@ -657,35 +661,165 @@ P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency
 
 ## 怎么做？
 
-> Dynamo and Cassandra are PA/EL systems: 
+> Dynamo and Cassandra are PA/EL systems:
 > They choose availability over consistency when a partition occurs; otherwise, they choose lower latency.
-> 
-> BigTable and HBase are PC/EC systems: 
+>
+> BigTable and HBase are PC/EC systems:
 > They will always choose consistency, giving up availability and lower latency
-> 
+>
 > MongoDB can be considered PA/EC (default configuration)
 
 不同的数据库可以实现不同的配置
 
 Ref:
-https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052
-
+<https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052>
 
 # Consistant hashing
 
-# Long-Polling vs WebSocket vs Server-Sent events
+# Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events
+
+## What is
+
+A standard HTTP web request:
+
+- Client open a connection and request data from the server
+- The server calculate the response
+- The sever sends the response back to the client on the opened request
+
+## Why 
+
+## How and What's good and What's bad?
+
+### Ajax Polling
+
+What is Akax? 
+
+- Ajax is AsynchronousJavascript + XML/json
+- 只要是JS调用异步通讯组件并使用格式化的数据来更新web页面上的内容或操作过程，那么我们用的方法就可算是AJAX
+- Ajax is the technique concept. not a framework or somethinge else
+
+Ajax polling is the client periodically/repeatly sending request to server, asking for new Data.
+
+This way will create **HTTP** overhead since it just keep asking server for any new data
+
+### **HTTP** long-polling
+
+Connection is initiate by client, and it is there untill server has an update or timeout
+
+Hanging Get:
+
+> - If the server does not have any data available for the client, instead of
+> sending an empty response, the server holds the request and waits until
+> some data becomes available or timeout period reached.
+> 
+> - Once the data becomes available, a full response is sent to the client.
+> The client then immediately **re-request** information from the server so
+> that the server will almost always have an available waiting request
+> that it can use to deliver data in response to an event
+
+### Web Socket
+
+A full duplex(双工) communication** channel over a single TCP connection**. Both **server and client can send data at anytime.**
+  
+- Bi-direction
+- Without ask
+- low communication overhead and real-time data transfer
+
+Scenario(mupltple user communication & server-side data constantly changing):
+
+- Social feed
+- Chat apps
+- Tacking APP
+- live audience
+
+### SSE
+
+Initiated by client, once established, it will be there. And **direction is from server to client.**
+
+If client wants to send data to server, it would require to use another tech.
+
+- The client requests data from a server using regular **HTTP**.
+- The requested webpage opens a connection to the server.
+- The server sends the data to the client whenever there’s new information available.
+
+Scenario(best when we need real-time traffic from the server):
+- Facebook update. News feed. Push Notification
+
+
+## ref:
+
+https://medium.com/must-know-computer-science/system-design-client-server-communication-674818ca448d
 
 # Bloom filter
 
-# Quorum
+It is a data strcutre.
+
+A Bloom filter is a data structure designed to tell you, rapidly and memory-efficiently, whether an element is present in a set.
+
+The price paid for this efficiency is that a Bloom filter is a probabilistic data structure: it tells us that the element **either definitely is not in the set** or **may be** in the set.
+
+https://llimllib.github.io/bloomfilter-tutorial/
+
 
 # Leader and Follower
 
+> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
+> election can be started
+
+
+> The server which receives votes from the majority of the servers, transitions to leader
+> state. The majority is determined as discussed in Quorum. Once elected, the leader
+> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
+> specified time interval, a new leader election is triggered.
+
 # Heartbeat
+
+## What is?
+
+Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
+
+## how
+
+> Heartbeating is one of the mechanisms for detecting failures in a distributed
+system. If there is a central server, all servers periodically send a heartbeat
+message to it.
+
+> If there is no central server, all servers randomly choose a set
+of servers and send them a heartbeat message every few seconds. This way,
+if no heartbeat message is received from a server for a while, the system can
+suspect that the server might have crashed.
+If there is no heartbeat within a
+configured timeout period, the system can conclude that the server is not
+alive anymore and stop sending requests to it and start working on its
+replacement.
+
+## Why
 
 # Checksum
 
-# System Design Interviews
+## what is?
+
+An error-detection method
+
+## why?
+
+When moving data between components(across network, storage, software), it is possible that the data fetched from a node may arrived corrupted.
+
+This is to ensure data integrity.
+
+## how to do?
+
+- Hash fuction: with some algorithm, take the input data and produce a string
+- When a system is storing some data, it computes a checksum of the data and store the checksum **along with the data.**
+
+# System design blog I follow
+
+- <https://www.educative.io/courses/grokking-the-system-design-interview>
+- <https://medium.com/must-know-computer-science>
+- <http://www.ayqy.net/blog/category/back-end/>
+
+
+# Step that should be follow for System Design Interviews
 
 ## Requirement Clarification
 

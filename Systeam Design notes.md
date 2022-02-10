@@ -1,3 +1,115 @@
+- [System design notes for “Grokking the System Design Interview”](#system-design-notes-for-grokking-the-system-design-interview)
+- [Key Characteristics](#key-characteristics)
+  - [scalability 扩展性/伸缩性](#scalability-扩展性伸缩性)
+  - [Reliability 可靠](#reliability-可靠)
+  - [Availability 可用](#availability-可用)
+  - [Efficiency](#efficiency)
+  - [Servicebility and manageability 可维护性](#servicebility-and-manageability-可维护性)
+  - [Ref](#ref)
+- [Load Balancing](#load-balancing)
+  - [Concept](#concept)
+  - [Why need?](#why-need)
+  - [How to 怎么做?](#how-to-怎么做)
+    - [Health Check](#health-check)
+    - [Algorithms](#algorithms)
+    - [More specific](#more-specific)
+  - [LB 怎么好？](#lb-怎么好)
+  - [Ref](#ref-1)
+- [Caching](#caching)
+  - [缓存的一些概念](#缓存的一些概念)
+  - [为什么需要缓存?](#为什么需要缓存)
+  - [怎么做？--缓存的位置](#怎么做--缓存的位置)
+    - [Application cache](#application-cache)
+    - [CDN -- Web缓存](#cdn----web缓存)
+  - [缓存存在的问题](#缓存存在的问题)
+    - [Cache invalidation](#cache-invalidation)
+    - [Cache **eviction** policies](#cache-eviction-policies)
+  - [Code sample: LRU, LFU](#code-sample-lru-lfu)
+  - [Ref](#ref-2)
+- [Proxy](#proxy)
+  - [是什么？](#是什么)
+  - [为什么？有啥作用](#为什么有啥作用)
+  - [不同的类别](#不同的类别)
+  - [Ref](#ref-3)
+- [SQL and NoSQL](#sql-and-nosql)
+  - [是什么](#是什么-1)
+    - [SQL](#sql)
+    - [No-SQL](#no-sql)
+      - [No-Sql比较](#no-sql比较)
+  - [怎么用？](#怎么用)
+  - [有什么问题](#有什么问题)
+    - [basic difference](#basic-difference)
+    - [用哪种](#用哪种)
+  - [Ref](#ref-4)
+- [Index](#index)
+  - [Index decrease write performance](#index-decrease-write-performance)
+  - [Ref](#ref-5)
+- [Redundancy and Replication](#redundancy-and-replication)
+  - [What is?](#what-is)
+  - [用来做什么？](#用来做什么)
+  - [怎么做？](#怎么做)
+    - [一致性问题](#一致性问题)
+    - [怎么复制](#怎么复制)
+    - [结构](#结构)
+  - [Quorum](#quorum)
+- [Data partitioning](#data-partitioning)
+  - [是什么？](#是什么-2)
+  - [为什么？](#为什么)
+  - [怎么做？如何分区？](#怎么做如何分区)
+    - [Partitioning Methods](#partitioning-methods)
+      - [Horizaontal Partitioning -> **AKA Sharding(分片)**](#horizaontal-partitioning---aka-sharding分片)
+      - [Vertical Partitioning](#vertical-partitioning)
+      - [按功能分区](#按功能分区)
+      - [补充：Directory-Based partitioning](#补充directory-based-partitioning)
+    - [如何insert Data? -> Partitioning Criteria](#如何insert-data---partitioning-criteria)
+      - [Key or hash-based Partitioning](#key-or-hash-based-partitioning)
+      - [List Partitioning](#list-partitioning)
+      - [Round-Robin](#round-robin)
+      - [Composite Partitoning](#composite-partitoning)
+  - [为什么好？为什么不好？Common Problems of Data Partitioning ?](#为什么好为什么不好common-problems-of-data-partitioning-)
+    - [怎么好？](#怎么好)
+    - [怎么不好？](#怎么不好)
+      - [join and denormalization](#join-and-denormalization)
+    - [Referential Integrity](#referential-integrity)
+    - [Rebalancing](#rebalancing)
+- [CAP Theorem](#cap-theorem)
+  - [是什么？](#是什么-3)
+  - [为什么？](#为什么-1)
+  - [怎么做](#怎么做-1)
+  - [有什么问题？](#有什么问题-1)
+- [PACELC Theorem](#pacelc-theorem)
+  - [是什么](#是什么-4)
+  - [为什么](#为什么-2)
+  - [怎么做？](#怎么做-2)
+- [Consistant hashing](#consistant-hashing)
+- [Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events](#client-sever-communication----long-polling-vs-websocket-vs-server-sent-events)
+  - [What is](#what-is-1)
+  - [Why](#why)
+  - [How and What's good and What's bad?](#how-and-whats-good-and-whats-bad)
+    - [Ajax Polling](#ajax-polling)
+    - [**HTTP** long-polling](#http-long-polling)
+    - [Web Socket](#web-socket)
+    - [SSE](#sse)
+  - [ref](#ref-6)
+- [Bloom filter](#bloom-filter)
+- [Leader and Follower](#leader-and-follower)
+- [Heartbeat](#heartbeat)
+  - [What is?](#what-is-2)
+  - [how](#how)
+  - [Why](#why-1)
+- [Checksum](#checksum)
+  - [what is?](#what-is-3)
+  - [why?](#why-2)
+  - [how to do?](#how-to-do)
+- [Step that should be follow for System Design Interviews](#step-that-should-be-follow-for-system-design-interviews)
+  - [Requirement Clarification](#requirement-clarification)
+  - [Back-of-the-envelope(粗略的) estimation](#back-of-the-envelope粗略的-estimation)
+  - [System interface definition](#system-interface-definition)
+  - [Define data model](#define-data-model)
+  - [High-level design](#high-level-design)
+  - [Detailed design](#detailed-design)
+  - [Identifying and resolving bottlenecks](#identifying-and-resolving-bottlenecks)
+- [System design blog I follow](#system-design-blog-i-follow)
 
 # System design notes for “Grokking the System Design Interview”
 
@@ -45,7 +157,7 @@ redundancy 冗余设计是一个实现reliabled的手段。
 
 ## Availability 可用
 
-- By definition, availability is the time a system remains operational to perform its required function in a specific period
+By definition, availability is the time a system remains operational to perform its required function in a specific period
 
 Reliability is **availability over time** considering the full range of possible
 real-world conditions that can occur.
@@ -74,7 +186,7 @@ real-world conditions that can occur.
 
 throught_put = message + cnt * message_size?
 
-quote:
+Other measurements:
 
 > 通过单位时间所生产的东西来计量，例如内存带宽（memory bandwidth）用来衡量内存系统的吞吐量，而对于Web系统，有这些度量单位：
 >
@@ -88,10 +200,11 @@ quote:
 
 ## Servicebility and manageability 可维护性
 
-- Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
+Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
+
 比如当出现故障时，自动打电话给相应的维护人员。
 
-# Ref
+## Ref
 
 - <https://xie.infoq.cn/article/20c3ad1736d027615b12d6b20>
 - <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80.html#%E4%B8%80%E3%80%81%E6%80%A7%E8%83%BD>
@@ -181,7 +294,7 @@ LB可以带来：
 
 # Caching
 
-Caches take advantage of the locality of reference principle: recently requested data is likely to be requested again
+Caches take advantage of the locality of reference principle: **recently requested data is likely to be requested again**
 
 ## 缓存的一些概念
 
@@ -260,6 +373,218 @@ Consistency of Cache <=> DB
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/caching>
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/cdn>
 - <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98.html#%E4%B8%80%E3%80%81%E7%BC%93%E5%AD%98%E7%89%B9%E5%BE%81>
+
+# Proxy
+
+## 是什么？
+
+Typically, proxies are used to:
+
+- Filter requests
+- Log requests
+- Transform requests
+  - (by adding/removing headers, encrypting/decrypting, or compressing a resource).
+
+Another advantage of a proxy server is that its cache can serve a lot of requests. If multiple clients access a particular resource, the proxy server can cache it and serve it to all the clients without going to the remote server
+
+## 为什么？有啥作用
+
+应该说，放在不同位置的代理，或者不同类别的代理作用应该都各不相同。
+正向的：
+
+- log request: fiddler
+- 保护客户端或者保护服务器
+- 访问内网
+- 加密：v2ray
+- 代理翻墙
+
+反向的：见下
+
+## 不同的类别
+
+- Open proxy: 面向公众的，任何人都可以访问的正向代理
+- Anonymous proxy: 匿名代理, 不公开客户端原始IP地址的代理服务
+- 透明代理: 不作任何修改，一般用作网关，路由器。
+
+- Reverse Proxy
+
+  > retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
+
+  如何理解反向搭理？
+  - 反向代理是和服务器密切相关的。
+  - 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
+  - 正向代理知道客户端，不了解服务器；反向代理知道服务器，不了解客户端
+  - 反向代理可以保护内网服务器，不为外界所知
+  - 就可以把反向代理理解成“服务器作为客户端的正向代理”
+
+  反向代理的作用：
+  - 加密
+  - 负载均衡
+  - 缓存
+  - 安全防护
+  - 访问控制
+  - 托管静态内容
+
+## Ref
+
+- <http://www.ayqy.net/blog/reverse-proxy/>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
+
+# SQL and NoSQL
+
+## 是什么
+
+### SQL
+
+关系型数据库，提供的数据存储，检索机制是基于表关系建模的。
+
+store data in rows and columns. Each row contains all
+the information about one entity and each column contains all the separate
+data points.
+
+MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
+
+### No-SQL
+
+- 非关系型数据库。提供的数据存储，检索机制并不是基于表关系建模的。
+- 在关系型数据库之外的广阔世界里，数据不一定非要打平存放到二维表格里，关系也不是只能用**主键、外键、关系表**来描述
+- 从数据库类型类型来看，有很多no-sql的DB
+- 从实践角度来看，用NoSQL的方式使用MySQL数据库也算
+  - 比如在数据表中存一列 JSON 字符串，把这一列当作键值数据库来用
+
+#### No-Sql比较
+
+| Type      | Concept | Example | Apply to
+| ----------- | ----------- | ----------- | ----------- |
+| key-Value   | Data is stored in an array of key-value pairs <br> 类似一个 hash表  |   Redis, Voldemort, and Dynamo  | 用于简单、或者频繁更改的数据，经常用作**内存缓存**
+| Document Database  | 1. data is stored in documents，比如JSON，XML (instead of rows and columns in a table) and these documents are grouped together in collections。<br> 2. **可以理解为增强型的键值存储** <br> 3. 与键值存储最大的区别在于数据库能够理解并处理所存储的值（即文档）  | MongoDB， CouchDB | 适用于持久化存储，用来存放**不经常更改**的数据，作为关系型数据库的一般替代方案 |
+| Wide-Column Databases  |  1. Concept: column, super column, column families, super column families. <br> 2. 本质是二维MAP。<br> 3. 高性能以及良好的扩展性 | Cassandra, HBase   | 适用于非常大的数据集，被 Twitter、Facebook 等社交网络用来存储海量用户所产生的数据 |
+| Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
+
+## 怎么用？
+
+使用no-sql的话，
+
+- 就把一部分的工作从数据库转移到了应用层面。
+- 应用层更容易横向扩展，这种转移有助于提升系统的可扩展性
+
+## 有什么问题
+
+### basic difference
+
+| Type      | SQL | No-SQL |
+| ----------- | ----------- | ----------- |
+| Schema | fixed  | Dynamic  |
+| Querying | SQL | Different syntax for using UnSQL(Unstructured Query Language) |
+| Scalability  | mostly Vertically  | horizontally |
+| Reliability/ACID? | Good | Not good |
+
+
+### 用哪种
+
+| Pro & Cons | SQL | No-SQL |
+| ----------- | ----------- | ----------- |
+| Advantage | 1. ensure ACID compliance <br> 2. 明确的扩展模式<br> 3. community support | 1. 易于扩展 <br> 2. 无需复杂的连表查询 <br> 3. 与OOP一致，易于使用 <br> 4. 无需预先定义，修改成本低 <br> 5. 读写性能高， 大数据 |
+| Disadvantage | 1.复杂的连表查询导致数据读取性能不佳 <br> 2. 不方便扩展 <br> 3. 关系模型和OOP有差异 <br> 4. 只支持存取结构化数据，关系模式（如表结构）必须预先定义，并且修改成本高 | 1.缺乏强一致性的保证 <br> 2. less community support |
+
+NoSQL 数据库适用于：
+
+> - **快速变化的**数据，如点击流（click stream）数据或日志数据
+> - 排行榜或评分数据
+> - 临时数据，如购物车数据
+> - 频繁访问的热点数据
+> - 元数据（metadata），以及查找表（lookup tables）
+
+快速增长的数据？
+
+## Ref
+
+- <https://www.acodersjourney.com/>
+- <http://www.ayqy.net/blog/nosql/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-decision-tree>
+- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-considerations>
+- <http://www.ayqy.net/blog/nosql/>
+- <https://blog.mlab.com/2012/08/why-is-mongodb-wildly-popular/>
+- https://stackoverflow.com/questions/8729779/why-nosql-is-better-at-scaling-out-than-rdbms 
+
+# Index
+
+Catalog 目录，
+一个B树。m阶多叉树
+写一个B树就基本可以理解index是什么，底层怎么做，以及好处坏处。
+
+## Index decrease write performance
+
+When CRUD happen, index are also need to be updated.
+
+    If the goal of the database is to provide a data store that is often written to and rarely read from, in that case, decreasing the performance of the more common operation, which is writing, is probably not worth the increase in performance we get from reading.
+
+## Ref
+
+- <https://en.wikipedia.org/wiki/B-tree>
+- <https://docs.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver15>
+- <https://docs.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver15>
+
+# Redundancy and Replication
+
+## What is?
+
+redundancy
+
+- duplication of critical components or functions of a system
+- with the intention of increasing the reliability of the system,
+- usually in the form of a backup or fail-safe, or to improve actual system performance
+
+Replication
+
+sharing information to ensure **consistency** between redundant resources
+
+复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
+
+> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
+
+## 用来做什么？
+
+提升可靠性，
+
+包括性能？性能提高体现在哪里？
+
+## 怎么做？
+
+### 一致性问题
+
+- 强一致性（Strong consistency）：写完之后，立即就能读到
+- 最终一致性（Eventual consistency）：写完之后，保证最终能读到
+- 弱一致性（Weak consistency）：写完之后，不一定能读到
+
+### 怎么复制
+
+- 异步复制
+  - 优势：无需等待复制完成，性能没有太大影响
+  - 劣势:
+    - 无法保证强一致性
+    - 数据丢失
+  
+- 同步复制
+  - 优势
+    - 强一致性
+  - 劣势
+    - 一挂全挂
+    - 性能问题
+
+- 半同步复制
+
+### 结构
+
+- 一主多从
+- 多主多从
+- 无主多从
+
+## Quorum
+
+
+
 
 # Data partitioning
 
@@ -394,213 +719,6 @@ ref:
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/data-partitioning>
 - <http://www.ayqy.net/blog/database-partitioning/>
 
-# Index
-
-Catalog 目录，
-一个B树。m阶多叉树
-写一个B树就基本可以理解index是什么，底层怎么做，以及好处坏处。
-
-## Index decrease write performance
-
-When CRUD happen, index are also need to be updated.
-
-    If the goal of the database is to provide a data store that is often written to and rarely read from, in that case, decreasing the performance of the more common operation, which is writing, is probably not worth the increase in performance we get from reading.
-
-## Ref
-
-- <https://en.wikipedia.org/wiki/B-tree>
-- <https://docs.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver15>
-- <https://docs.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver15>
-
-# Proxy
-
-## 是什么？
-
-Typically, proxies are used to:
-
-- Filter requests
-- Log requests
-- Transform requests
-  - (by adding/removing headers, encrypting/decrypting, or compressing a resource).
-
-Another advantage of a proxy server is that its cache can serve a lot of requests. If multiple clients access a particular resource, the proxy server can cache it and serve it to all the clients without going to the remote server
-
-## 为什么？有啥作用
-
-应该说，放在不同位置的代理，或者不同类别的代理作用应该都各不相同。
-正向的：
-
-- log request: fiddler
-- 保护客户端或者保护服务器
-- 访问内网
-- 加密：v2ray :)
-- 代理翻墙
-
-反向的：见下
-
-## 不同的类别
-
-- Open proxy: 面向公众的，任何人都可以访问的正向代理
-- Anonymous proxy: 匿名代理, 不公开客户端原始IP地址的代理服务
-- 透明代理: 不作任何修改，一般用作网关，路由器。
-
-- Reverse Proxy
-
-  > retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
-
-  如何理解反向搭理？
-  - 反向代理是和服务器密切相关的。
-  - 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
-  - 正向代理知道客户端，不了解服务器；反向代理知道服务器，不了解客户端
-  - 反向代理可以保护内网服务器，不为外界所知
-  - 就可以把反向代理理解成“服务器作为客户端的正向代理”
-
-  反向代理的作用：
-  - 加密
-  - 负载均衡
-  - 缓存
-  - 安全防护
-  - 访问控制
-  - 托管静态内容
-
-## Ref
-
-- <http://www.ayqy.net/blog/reverse-proxy/>
-- <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
-
-# Redundancy and Replication
-
-## What is?
-
-redundancy
-
-- duplication of critical components or functions of a system
-- with the intention of increasing the reliability of the system,
-- usually in the form of a backup or fail-safe, or to improve actual system performance
-
-Replication
-
-sharing information to ensure **consistency** between redundant resources
-
-复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
-
-> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
-
-## 用来做什么？
-
-提升可靠性，
-
-包括性能？性能提高体现在哪里？
-
-## 怎么做？
-
-### 一致性问题
-
-- 强一致性（Strong consistency）：写完之后，立即就能读到
-- 最终一致性（Eventual consistency）：写完之后，保证最终能读到
-- 弱一致性（Weak consistency）：写完之后，不一定能读到
-
-### 怎么复制
-
-- 异步复制
-  - 优势：无需等待复制完成，性能没有太大影响
-  - 劣势:
-    - 无法保证强一致性
-    - 数据丢失
-  
-- 同步复制
-  - 优势
-    - 强一致性
-  - 劣势
-    - 一挂全挂
-    - 性能问题
-
-- 半同步复制
-
-### 结构
-
-- 一主多从
-- 多主多从
-- 无主多从
-
-
-## Quorum
-
-
-
-# SQL and NoSQL
-
-## 是什么
-
-### SQL
-
-关系型数据库，提供的数据存储，检索机制是基于表关系建模的。
-
-store data in rows and columns. Each row contains all
-the information about one entity and each column contains all the separate
-data points.
-
-MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
-
-### No-SQL
-
-- 非关系型数据库。提供的数据存储，检索机制并不是基于表关系建模的。
-- 在关系型数据库之外的广阔世界里，数据不一定非要打平存放到二维表格里，关系也不是只能用**主键、外键、关系表**来描述
-- 从数据库类型类型来看，有很多no-sql的DB
-- 从实践角度来看，用NoSQL的方式使用MySQL数据库也算
-  - 比如在数据表中存一列 JSON 字符串，把这一列当作键值数据库来用
-
-#### No-Sql比较
-
-| Type      | Concept | Example | Apply to
-| ----------- | ----------- | ----------- | ----------- |
-| key-Value   | Data is stored in an array of key-value pairs <br> 类似一个 hash表  |   Redis, Voldemort, and Dynamo  | 用于简单、或者频繁更改的数据，经常用作**内存缓存**
-| Document Database  | 1. data is stored in documents，比如JSON，XML (instead of rows and columns in a table) and these documents are grouped together in collections。<br> 2. **可以理解为增强型的键值存储** <br> 3. 与键值存储最大的区别在于数据库能够理解并处理所存储的值（即文档）  | MongoDB， CouchDB | 适用于持久化存储，用来存放**不经常更改**的数据，作为关系型数据库的一般替代方案 |
-| Wide-Column Databases  |  1. Concept: column, super column, column families, super column families. <br> 2. 本质是二维MAP。<br> 3. 高性能以及良好的扩展性 | Cassandra, HBase   | 适用于非常大的数据集，被 Twitter、Facebook 等社交网络用来存储海量用户所产生的数据 |
-| Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
-
-## 怎么用？
-
-- 使用no-sql的话，就把一部分的工作从数据库转移到了应用层面。
-- 应用层更容易横向扩展，这种转移有助于提升系统的可扩展性
-
-## 有什么问题
-
-### basic difference
-
-| Type      | SQL | No-SQL |
-| ----------- | ----------- | ----------- |
-| Schema | fixed  | Dynamic  |
-| Querying | SQL | Different syntax for using UnSQL(Unstructured Query Language) |
-| Scalability  | mostly Vertically  | horizontally |
-| Reliability/ACID? | Good | Not good |
-|
-
-### 用什么
-
-| Pro & Cons | SQL | No-SQL |
-| ----------- | ----------- | ----------- |
-| Advantage | 1. ensure ACID compliance <br> 2. 明确的扩展模式<br> 3. community support | 1. 易于扩展 <br> 2. 无需复杂的连表查询 <br> 3. 与OOP一致，易于使用 <br> 4. 无需预先定义，修改成本低 5. 读写性能高， 大数据 |
-| Disadvantage | 1.复杂的连表查询导致数据读取性能不佳 <br> 2. 不方便扩展 <br> 3. 关系模型和OOP有差异 <br> 4. 只支持存取结构化数据，关系模式（如表结构）必须预先定义，并且修改成本高 | 1.缺乏强一致性的保证 <br> 2. less community support |
-
-> NoSQL 数据库适用于：
->
-> - **快速变化的**数据，如点击流（click stream）数据或日志数据
-> - 排行榜或评分数据
-> - 临时数据，如购物车数据
-> - 频繁访问的热点数据
-> - 元数据（metadata），以及查找表（lookup tables）
-
-## Ref
-
-- <https://www.acodersjourney.com/>
-- <http://www.ayqy.net/blog/nosql/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>>
-- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview>
-- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-decision-tree>
-- <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-considerations>
-- <http://www.ayqy.net/blog/nosql/>
-- <https://blog.mlab.com/2012/08/why-is-mongodb-wildly-popular/>
-
 # CAP Theorem
 
 ## 是什么？
@@ -686,13 +804,13 @@ A standard HTTP web request:
 - The server calculate the response
 - The sever sends the response back to the client on the opened request
 
-## Why 
+## Why
 
 ## How and What's good and What's bad?
 
 ### Ajax Polling
 
-What is Akax? 
+What is Akax?
 
 - Ajax is AsynchronousJavascript + XML/json
 - 只要是JS调用异步通讯组件并使用格式化的数据来更新web页面上的内容或操作过程，那么我们用的方法就可算是AJAX
@@ -711,7 +829,7 @@ Hanging Get:
 > - If the server does not have any data available for the client, instead of
 > sending an empty response, the server holds the request and waits until
 > some data becomes available or timeout period reached.
-> 
+>
 > - Once the data becomes available, a full response is sent to the client.
 > The client then immediately **re-request** information from the server so
 > that the server will almost always have an available waiting request
@@ -719,7 +837,7 @@ Hanging Get:
 
 ### Web Socket
 
-A full duplex(双工) communication** channel over a single TCP connection**. Both **server and client can send data at anytime.**
+A full duplex(双工) communication**channel over a single TCP connection**. Both **server and client can send data at anytime.**
   
 - Bi-direction
 - Without ask
@@ -743,12 +861,12 @@ If client wants to send data to server, it would require to use another tech.
 - The server sends the data to the client whenever there’s new information available.
 
 Scenario(best when we need real-time traffic from the server):
+
 - Facebook update. News feed. Push Notification
 
+## ref
 
-## ref:
-
-https://medium.com/must-know-computer-science/system-design-client-server-communication-674818ca448d
+<https://medium.com/must-know-computer-science/system-design-client-server-communication-674818ca448d>
 
 # Bloom filter
 
@@ -758,14 +876,12 @@ A Bloom filter is a data structure designed to tell you, rapidly and memory-effi
 
 The price paid for this efficiency is that a Bloom filter is a probabilistic data structure: it tells us that the element **either definitely is not in the set** or **may be** in the set.
 
-https://llimllib.github.io/bloomfilter-tutorial/
-
+<https://llimllib.github.io/bloomfilter-tutorial/>
 
 # Leader and Follower
 
 > HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
 > election can be started
-
 
 > The server which receives votes from the majority of the servers, transitions to leader
 > state. The majority is determined as discussed in Quorum. Once elected, the leader
@@ -812,39 +928,45 @@ This is to ensure data integrity.
 - Hash fuction: with some algorithm, take the input data and produce a string
 - When a system is storing some data, it computes a checksum of the data and store the checksum **along with the data.**
 
-# System design blog I follow
-
-- <https://www.educative.io/courses/grokking-the-system-design-interview>
-- <https://medium.com/must-know-computer-science>
-- <http://www.ayqy.net/blog/category/back-end/>
-
-
 # Step that should be follow for System Design Interviews
 
 ## Requirement Clarification
 
-Scope.
+- 从你的认知展开问
+- 从你所掌握的system design的知识点展开（有点倒推的意思）
 
-## Back-of-the-envelope estimation
+明确出：
 
-Back-of-the-envelope: roughly
+- 功能
+- 存什么
+- 前后端？还是只有后端？
 
-- What scale is expected from the system ?
-- How much storage will we need?
+## Back-of-the-envelope(粗略的) estimation
+
+- What **scale** is expected from the system ?
+- How much **storage** will we need?
+  - is photos videos included?
 - What network bandwidth usage are we expecting?
+  - traffic,
+  - balance load
 
 ## System interface definition
 
-Define API
+- Define API according to function you want to achieve(This is something that you should have figure out in the step: Requirement Clarification)
 
 ## Define data model
 
-- Schema
-- NoSQL vs SQL
+- identify various system entities, 
+  - 在这个系统中有什么样的主体，有点像是面向对象，比如Twitter：有用户，tweets。
+- how they will interact with each other, 
+- and different aspects of data management like storage, transportation, encryption, etc. 
 
 ## High-level design
 
-draw the diagram
+draw the diagram, We should identify enough components that are needed to solve
+the actual problem from **end to end.**
+
+本质是读写
 
 ## Detailed design
 
@@ -852,12 +974,9 @@ Focus on some single part. Need more practice
 
 ## Identifying and resolving bottlenecks
 
-# Example: Design URL shorten service
 
-## Requirement Clarification
+# System design blog I follow
 
-## Estimation
-
-read-heavy or write heavy?
-
-design
+- <https://www.educative.io/courses/grokking-the-system-design-interview>
+- <https://medium.com/must-know-computer-science>
+- <http://www.ayqy.net/blog/category/back-end/>

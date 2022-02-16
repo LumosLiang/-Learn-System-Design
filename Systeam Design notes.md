@@ -1,116 +1,3 @@
-- [System design notes for “Grokking the System Design Interview”](#system-design-notes-for-grokking-the-system-design-interview)
-- [Key Characteristics](#key-characteristics)
-  - [scalability 扩展性/伸缩性](#scalability-扩展性伸缩性)
-  - [Reliability 可靠](#reliability-可靠)
-  - [Availability 可用](#availability-可用)
-  - [Efficiency](#efficiency)
-  - [Servicebility and manageability 可维护性](#servicebility-and-manageability-可维护性)
-  - [Ref](#ref)
-- [Load Balancing](#load-balancing)
-  - [Concept](#concept)
-  - [Why need?](#why-need)
-  - [How to 怎么做?](#how-to-怎么做)
-    - [Health Check](#health-check)
-    - [Algorithms](#algorithms)
-    - [More specific](#more-specific)
-  - [LB 怎么好？](#lb-怎么好)
-  - [Ref](#ref-1)
-- [Caching](#caching)
-  - [缓存的一些概念](#缓存的一些概念)
-  - [为什么需要缓存?](#为什么需要缓存)
-  - [怎么做？--缓存的位置](#怎么做--缓存的位置)
-    - [Application cache](#application-cache)
-    - [CDN -- Web缓存](#cdn----web缓存)
-  - [缓存存在的问题](#缓存存在的问题)
-    - [Cache invalidation](#cache-invalidation)
-    - [Cache **eviction** policies](#cache-eviction-policies)
-  - [Code sample: LRU, LFU](#code-sample-lru-lfu)
-  - [Ref](#ref-2)
-- [Proxy](#proxy)
-  - [是什么？](#是什么)
-  - [为什么？有啥作用](#为什么有啥作用)
-  - [不同的类别](#不同的类别)
-  - [Ref](#ref-3)
-- [SQL and NoSQL](#sql-and-nosql)
-  - [是什么](#是什么-1)
-    - [SQL](#sql)
-    - [No-SQL](#no-sql)
-      - [No-Sql比较](#no-sql比较)
-  - [怎么用？](#怎么用)
-  - [有什么问题](#有什么问题)
-    - [basic difference](#basic-difference)
-    - [用哪种](#用哪种)
-  - [Ref](#ref-4)
-- [Index](#index)
-  - [Index decrease write performance](#index-decrease-write-performance)
-  - [Ref](#ref-5)
-- [Redundancy and Replication](#redundancy-and-replication)
-  - [What is?](#what-is)
-  - [用来做什么？](#用来做什么)
-  - [怎么做？](#怎么做)
-    - [一致性问题](#一致性问题)
-    - [怎么复制](#怎么复制)
-    - [结构](#结构)
-  - [Quorum](#quorum)
-- [Data partitioning](#data-partitioning)
-  - [是什么？](#是什么-2)
-  - [为什么？](#为什么)
-  - [怎么做？如何分区？](#怎么做如何分区)
-    - [Partitioning Methods](#partitioning-methods)
-      - [Horizaontal Partitioning -> **AKA Sharding(分片)**](#horizaontal-partitioning---aka-sharding分片)
-      - [Vertical Partitioning](#vertical-partitioning)
-      - [按功能分区](#按功能分区)
-      - [补充：Directory-Based partitioning](#补充directory-based-partitioning)
-    - [如何insert Data? -> Partitioning Criteria](#如何insert-data---partitioning-criteria)
-      - [Key or hash-based Partitioning](#key-or-hash-based-partitioning)
-      - [List Partitioning](#list-partitioning)
-      - [Round-Robin](#round-robin)
-      - [Composite Partitoning](#composite-partitoning)
-  - [为什么好？为什么不好？Common Problems of Data Partitioning ?](#为什么好为什么不好common-problems-of-data-partitioning-)
-    - [怎么好？](#怎么好)
-    - [怎么不好？](#怎么不好)
-      - [join and denormalization](#join-and-denormalization)
-    - [Referential Integrity](#referential-integrity)
-    - [Rebalancing](#rebalancing)
-- [CAP Theorem](#cap-theorem)
-  - [是什么？](#是什么-3)
-  - [为什么？](#为什么-1)
-  - [怎么做](#怎么做-1)
-  - [有什么问题？](#有什么问题-1)
-- [PACELC Theorem](#pacelc-theorem)
-  - [是什么](#是什么-4)
-  - [为什么](#为什么-2)
-  - [怎么做？](#怎么做-2)
-- [Consistant hashing](#consistant-hashing)
-- [Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events](#client-sever-communication----long-polling-vs-websocket-vs-server-sent-events)
-  - [What is](#what-is-1)
-  - [Why](#why)
-  - [How and What's good and What's bad?](#how-and-whats-good-and-whats-bad)
-    - [Ajax Polling](#ajax-polling)
-    - [**HTTP** long-polling](#http-long-polling)
-    - [Web Socket](#web-socket)
-    - [SSE](#sse)
-  - [ref](#ref-6)
-- [Bloom filter](#bloom-filter)
-- [Leader and Follower](#leader-and-follower)
-- [Heartbeat](#heartbeat)
-  - [What is?](#what-is-2)
-  - [how](#how)
-  - [Why](#why-1)
-- [Checksum](#checksum)
-  - [what is?](#what-is-3)
-  - [why?](#why-2)
-  - [how to do?](#how-to-do)
-- [Step that should be follow for System Design Interviews](#step-that-should-be-follow-for-system-design-interviews)
-  - [Requirement Clarification](#requirement-clarification)
-  - [Back-of-the-envelope(粗略的) estimation](#back-of-the-envelope粗略的-estimation)
-  - [System interface definition](#system-interface-definition)
-  - [Define data model](#define-data-model)
-  - [High-level design](#high-level-design)
-  - [Detailed design](#detailed-design)
-  - [Identifying and resolving bottlenecks](#identifying-and-resolving-bottlenecks)
-- [System design blog I follow](#system-design-blog-i-follow)
-
 # System design notes for “Grokking the System Design Interview”
 
 系统设计学习笔记：
@@ -210,7 +97,9 @@ Serviceability or manageability is the simplicity and speed with which a system 
 - <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80.html#%E4%B8%80%E3%80%81%E6%80%A7%E8%83%BD>
 - <http://www.ayqy.net/blog/scalability_%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E7%AC%94%E8%AE%B01/>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/design-principles/redundancy>
-
+- <https://www.techopedia.com/definition/14533/queries-per-second-qps>
+- <https://segmentfault.com/a/1190000010844969>
+  
 # Load Balancing
 
 ## Concept
@@ -479,7 +368,6 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 | Scalability  | mostly Vertically  | horizontally |
 | Reliability/ACID? | Good | Not good |
 
-
 ### 用哪种
 
 | Pro & Cons | SQL | No-SQL |
@@ -506,7 +394,7 @@ NoSQL 数据库适用于：
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-considerations>
 - <http://www.ayqy.net/blog/nosql/>
 - <https://blog.mlab.com/2012/08/why-is-mongodb-wildly-popular/>
-- https://stackoverflow.com/questions/8729779/why-nosql-is-better-at-scaling-out-than-rdbms 
+- <https://stackoverflow.com/questions/8729779/why-nosql-is-better-at-scaling-out-than-rdbms>
 
 # Index
 
@@ -582,9 +470,6 @@ sharing information to ensure **consistency** between redundant resources
 - 无主多从
 
 ## Quorum
-
-
-
 
 # Data partitioning
 
@@ -935,6 +820,12 @@ This is to ensure data integrity.
 - 从你的认知展开问
 - 从你所掌握的system design的知识点展开（有点倒推的意思）
 
+可以总结出一个cheatsheet：
+
+- 不同的指标下，有什么样的固定模式
+  - 比如 highly available 应该从哪些细节设计实现
+  - 比如 latency要是少 应该从哪些细节设计实现
+
 明确出：
 
 - 功能
@@ -945,9 +836,9 @@ This is to ensure data integrity.
 
 - What **scale** is expected from the system ?
 - How much **storage** will we need?
-  - is photos videos included?
-- What network bandwidth usage are we expecting?
-  - traffic,
+  - Are photos videos included?
+- What network bandwidth usage are we expecting? This is critical for deciding how we will manage:
+  - traffic
   - balance load
 
 ## System interface definition
@@ -956,10 +847,10 @@ This is to ensure data integrity.
 
 ## Define data model
 
-- identify various system entities, 
+- identify various system entities,
   - 在这个系统中有什么样的主体，有点像是面向对象，比如Twitter：有用户，tweets。
-- how they will interact with each other, 
-- and different aspects of data management like storage, transportation, encryption, etc. 
+- how they will interact with each other,
+- and different aspects of data management like storage, transportation, encryption, etc.
 
 ## High-level design
 
@@ -971,9 +862,10 @@ the actual problem from **end to end.**
 ## Detailed design
 
 Focus on some single part. Need more practice
+Algorithm.
+Corner case
 
 ## Identifying and resolving bottlenecks
-
 
 # System design blog I follow
 

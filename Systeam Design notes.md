@@ -7,6 +7,8 @@
 - 具体怎么实现？-> 算法
 - 这样实现有什么样的问题？-> 不同实现之间，有什么优劣
 
+Everything is a trade-off
+
 # Key Characteristics
 
 ## scalability 扩展性/伸缩性
@@ -30,7 +32,22 @@
     - 怎么搭集群，如何设计拓扑结构
     - 这份工作具体是谁完成的？
 
-Scalability并不是单纯针对DB。Scalability是指系统，你的所有设计target for increasing the scalability
+Scalability并不是针对DB。Scalability是指系统，你的所有设计target for increasing the scalability
+
+再补充一些关于scalability的：
+
+Scalability的Topics covered:
+
+> <https://www.youtube.com/watch?v=-W9F__D3oY4>
+>
+> - Vertical scaling
+> - Horizontal scaling
+> - Caching
+> - Load balancing
+> - Database replication
+> - Database partitioning
+
+所以scalability包含LB，Caching，DB replication， DB partition等等一切可以使系统scale up的概念
 
 ***
 
@@ -56,6 +73,39 @@ real-world conditions that can occur.
 - availabilty VS reliability
   - reliability --> availabilty
   - availabilty -X-> reliability
+
+有两种方法可以支撑高可用性：
+
+- fail-over
+  - active-passive(master-slave failover):
+    - there is master server, it regularly send hearbeat signal to the backup server. Once master is down, backup server takes over and resume the service
+  - active-active(master-master failover):
+    - there are two main servers, and they are all managing the traffic
+    - LB
+  - failover不好的地方在于：
+    - 增加硬件，增加复杂度
+    - potential of loss of data
+
+- replication
+  - 见replication章节
+
+如何评价和计算availablity：
+
+- 99.99 vs 99.9
+  - <https://azure.microsoft.com/en-us/support/legal/sla/summary/>
+- parallel vs in sequence
+  - if a system has many components and each components has a chance to fail, then the overall availability are:
+    - parallel:
+
+      ```
+      Availability (Total) = 1 - (1 - Availability (Foo)) * (1 - Availability (Bar))
+      ```
+
+    - in sequence :
+
+      ```
+      Availability (Total) = Availability (Foo) * Availability (Bar)
+      ```
 
 ***
 
@@ -91,6 +141,21 @@ Serviceability or manageability is the simplicity and speed with which a system 
 
 比如当出现故障时，自动打电话给相应的维护人员。
 
+## Performance VS scalability
+
+A service is scalable if it results in increased performance in a manner proportional to resources addeds
+
+- If you have a performance problem, your system is slow for a single user.
+- If you have a scalability problem, your system is fast for a single user but slow under heavy load.
+
+## Latency vs throughput
+
+见Efficiency
+
+## Availability vs consistency
+
+这里就是CAP theory。详细见下CAP
+
 ## Ref
 
 - <https://xie.infoq.cn/article/20c3ad1736d027615b12d6b20>
@@ -107,6 +172,8 @@ Serviceability or manageability is the simplicity and speed with which a system 
 Load Balancer (LB) is another critical component of any distributed system.
 It helps to spread the traffic across a cluster of servers to improve
 **responsiveness** and **availability** of applications, websites or databases.
+
+> Load balancers can be implemented with hardware (expensive) or with software such as HAProxy.
 
 ## Why need?
 
@@ -131,10 +198,6 @@ LB可以在多层去做:
 - web and application or cache
 - application and DB
 
-Redundant LB
-
-Because LB can also be a SPF(single point of failure). We can add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
-
 ### Health Check
 
 To make sure that the server in the pool are healthy. If not healthy, it will be removed
@@ -158,14 +221,21 @@ This should regularly happening
   - IP Hash ensures that requests from a particular client are always directed to the same backend server, as long as it is available.
   - You cannot add a backend server marked as Backup to a backend set that uses the IP Hash policy.
 
-### More specific
+### L4, L7 load balance
 
-L4, L7 load balance
-
-- L4， L7 各自是什么？
+- L4， L7 各自是什么
+  - L4:
+    - in the transport layer
+    - looking at the source, destination IP, ports in the header, but not conent
+    - Do NAT
+  - L7
+    - in the application layer
+    - involve content like, header, message, cookies
+    - read the message, make decision, like for a video messages, redirect ot the video server; for a biliing traffic, it redirect to sensitive data hosting server.
+  
 - 各自的好处与坏处
-  - L4, simple and quick?
-  - L7, more info, more insight, better load-balance
+  - L4, simple and quick; less time and conmputing resource
+  - L7, more info, more insight, better load-balance but more resource, more expensive?
 
 ## LB 怎么好？
 
@@ -175,7 +245,21 @@ LB可以带来：
 - 更少的downtime的时间。
 - SMART的LB可以提供business insight
 - 对于Systeam admin，更易于manage
-  
+
+## how bad
+
+> The load balancer can become a performance bottleneck if it does not have enough resources or if it is not configured properly.
+>
+> Introducing a load balancer to help eliminate a single point of failure results in increased complexity.
+>
+> A single load balancer is a single point of failure, configuring multiple load balancers further increases complexity.
+
+To resolve, introduce redundant LB
+
+Because LB can also be a SPF(single point of failure). We can add another LB to form a cluster. Each monitor the health of the other. Once the main fail, the second takes over.
+
+> To protect against failures, it's common to set up multiple load balancers, either in active-passive or active-active mode.
+
 ## Ref
 
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview>
@@ -224,12 +308,6 @@ distributed caches.**
 
 >分布式缓存：指的是与**应用分离**的缓存组件或服务，其最大的优点是**自身就是一个独立的应用**，与本地应用隔离，多个应用可直接的共享缓存。
 
-### CDN -- Web缓存
-
-static media:
-
-<https://liuheihei.github.io/2019/08/23/%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E4%B8%8ECDN%E7%9A%84%E5%8C%BA%E5%88%AB/>
-
 ## 缓存存在的问题
 
 ### Cache invalidation
@@ -263,6 +341,83 @@ Consistency of Cache <=> DB
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/cdn>
 - <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98.html#%E4%B8%80%E3%80%81%E7%BC%93%E5%AD%98%E7%89%B9%E5%BE%81>
 
+# CDN
+
+## what is CDN
+
+CDN is distributed content server network. Serving content to nearest service end-users.
+It generally store static data, like html, js, css file.
+
+## Push CDNs vs Pull CDNs
+
+> Push CDNs receive new content whenever changes occur on your server. You take full responsibility for providing content, uploading directly to the CDN and rewriting URLs to point to the CDN. You can configure when content expires and when it is updated. Content is uploaded only when it is new or changed, minimizing traffic, but maximizing storage.
+
+> Sites with a small amount of traffic or sites with content that isn't often updated work well with push CDNs. Content is placed on the CDNs once, instead of being re-pulled at regular intervals.
+
+> Pull CDNs grab new content from your server when the first user requests the content. You leave the content on your server and rewrite URLs to point to the CDN. This results in a slower request until the content is cached on the CDN.
+
+> A time-to-live (TTL) determines how long content is cached. Pull CDNs minimize storage space on the CDN, but can create redundant traffic if files expire and are pulled before they have actually changed.
+
+> Sites with heavy traffic work well with pull CDNs, as traffic is spread out more evenly with only recently-requested content remaining on the CDN.
+
+##
+
+# DNS
+
+## What is it
+
+translate domain names to IP address.
+
+## how it work
+
+- client contact DNS server(maybe according to outbound IP) to get
+- if there is no cache, this DNS server just look up until root server to find the relevant map.
+- Once find, this DNS server will cache this in itself and also send result to the client
+- client just make request.
+
+## Who maintain DNS
+
+- 13 root server managed mainly by verisign, US army, US research party.
+- These are the secondary servers maintained by Governments, ISP's, and private companies like Google, OpenDNS. These servers get stuff from the Root Servers and cache them and they feed it to us the users. These are faster than the root server because results are cached from the Root Servers.
+
+## disadvantage
+
+> Accessing a DNS server introduces a **slight delay**, although mitigated by caching described above.
+>
+> DNS server management could be complex and is generally managed by governments,
+> ISPs, and large companies.
+>
+> DNS services have recently come under DDoS attack, preventing users from
+> accessing websites such as Twitter without knowing Twitter's IP address(es).
+
+# Message Queue
+
+# Application Server
+
+## what is
+
+In the application layer, there could be component like microservice, service discovery, etc.
+
+## Web server vs application server
+
+Application server handle logic, while web server only handle http requests back and forth.
+
+<https://stackoverflow.com/questions/936197/what-is-the-difference-between-application-server-and-web-server>
+
+## Disadvantage
+
+- Increase complexity. Need a well configuration and design from the "architectural, operations, and process viewpoint" Perspective
+- deployment and operations
+- So still depend on how your business is. The scale, the DAU, sth like that.
+
+## Ref
+
+<https://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones>
+
+every server contains exactly the same codebase and does not store any user-related data, like sessions or profile pictures, on local disc or memory
+<https://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>
+
+
 # Proxy
 
 ## 是什么？
@@ -287,37 +442,46 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - 加密：v2ray
 - 代理翻墙
 
-反向的：见下
-
 ## 不同的类别
 
 - Open proxy: 面向公众的，任何人都可以访问的正向代理
 - Anonymous proxy: 匿名代理, 不公开客户端原始IP地址的代理服务
 - 透明代理: 不作任何修改，一般用作网关，路由器。
 
-- Reverse Proxy
+### Reverse Proxy
 
-  > retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
+> retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
 
-  如何理解反向搭理？
-  - 反向代理是和服务器密切相关的。
-  - 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
-  - 正向代理知道客户端，不了解服务器；反向代理知道服务器，不了解客户端
-  - 反向代理可以保护内网服务器，不为外界所知
-  - 就可以把反向代理理解成“服务器作为客户端的正向代理”
+如何理解反向搭理？
 
-  反向代理的作用：
-  - 加密
-  - 负载均衡
-  - 缓存
-  - 安全防护
-  - 访问控制
-  - 托管静态内容
+- 反向代理是和服务器密切相关的。
+- 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
+- 正向代理知道客户端，不了解服务器；反向代理知道服务器，不了解客户端
+- 反向代理可以保护内网服务器，不为外界所知
+- 就可以把反向代理理解成“服务器作为客户端的正向代理”
+
+反向代理的作用：
+
+- 加密
+- 负载均衡
+- 缓存
+- 安全防护
+- 访问控制
+- 托管静态内容
+
+## Reverse proxy VS load balancer
+
+- mulitple server -> load balancer
+- single application server, web server architecture -> Reverse proxy
+- Current software like nginx can support both
 
 ## Ref
 
 - <http://www.ayqy.net/blog/reverse-proxy/>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
+- <https://serverfault.com/questions/127021/what-is-the-difference-between-load-balancer-and-reverse-proxy>
+- <https://stackoverflow.com/questions/59782057/what-is-the-difference-between-reverse-proxy-and-load-balancer>
+
 
 # SQL and NoSQL
 
@@ -327,7 +491,7 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 
 关系型数据库，提供的数据存储，检索机制是基于表关系建模的。
 
-store data in rows and columns. Each row contains all
+> store data in rows and columns. Each row contains all
 the information about one entity and each column contains all the separate
 data points.
 
@@ -440,13 +604,13 @@ sharing information to ensure **consistency** between redundant resources
 
 ## 怎么做？
 
-### 一致性问题
+### 结构
 
-- 强一致性（Strong consistency）：写完之后，立即就能读到
-- 最终一致性（Eventual consistency）：写完之后，保证最终能读到
-- 弱一致性（Weak consistency）：写完之后，不一定能读到
+- 一主多从
+- 多主多从
+- 无主多从
 
-### 怎么复制
+### 方法
 
 - 异步复制
   - 优势：无需等待复制完成，性能没有太大影响
@@ -463,11 +627,7 @@ sharing information to ensure **consistency** between redundant resources
 
 - 半同步复制
 
-### 结构
 
-- 一主多从
-- 多主多从
-- 无主多从
 
 ## Quorum
 
@@ -604,7 +764,9 @@ ref:
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/data-partitioning>
 - <http://www.ayqy.net/blog/database-partitioning/>
 
-# CAP Theorem
+# Consistant hashing
+
+# Consistency  
 
 ## 是什么？
 
@@ -614,29 +776,35 @@ ref:
   - 写完不一定能读到, 比如游戏，视频，网络电话。
 - 最终一致性
   - 写完，异步复制，最终可以读到，比如Email, DNS
+  - 通常在highly available的系统中
 - 强一致性 最强
   - 写完，立刻同步，立即能读到，文件系统。
 
-什么是可用性？
+# CAP Theorem
 
-- 第一节有提到
-- <https://azure.microsoft.com/en-us/support/legal/sla/summary/>
+## 是什么？
 
-- C: consistency -> all nodes see the same data at same time 每次读取都能得到最新写入的结果，抑或出错
-- A: Availability -> every request receive by non-failing node must result in a response 每个请求都能收到正常响应，但不保证返回的是最新信息
-- P: Partition -> communication break (or a network failure) between any two nodes in the system 即便有一部分由于网络故障down掉了，系统仍能继续运行
+- C: consistency -> all nodes see the same data at same time or error
+  
+  每次读取都能得到最新写入的结果，**抑或出错**
+- A: Availability -> every request receive by non-failing node must result in a response, but without guarantee that it contains the most recnet version of the information
+  
+  每个请求都能收到正常响应，但不保证返回的是最新信息
+- P: Partition -> communication break (or a network failure) between any two nodes in the system
+  
+  即便有一部分由于网络故障down掉了，系统仍能继续运行
 
 ## 为什么？
 
-系统设计中也面临许多权衡取舍：
+系统设计中也面临许多权衡取舍(与第一节相对)：
 
-- 性能与可扩展性
+- 性能与可扩展性 Performance and scalability
   - 服务可以通过加资源的方式成比例的提升性能
   - 但资源也会引入多样性。新旧节点的不同引起的异质性会影响性能
-- 延迟与吞吐量
+- 延迟与吞吐量 latency and throughput
   - 吞吐量是指单位时间内所能处理的操作数
   - 无法兼具低延迟和高吞吐量，所以可能权衡的原则是：在一定延迟的情况下，尽可能追求最大的吞吐量
-- 可用性与一致性
+- 可用性与一致性 availiblity and consistency
   - 即本节要讨论的内容
 
 ## 怎么做
@@ -644,13 +812,20 @@ ref:
 CAP is a "three choices, pick two" scenario. In the presence of a network partition,a distributed system must choose either Consistency or Availability:
 
 - choose consistency: 当网络不完全可靠，出现故障，取消操作，保证一致性，但会降低可用性，用户可能会收到超时错误
+  - > Waiting for a response from the partitioned node might result in a timeout error. CP is a good choice if your business needs require **atomic reads and writes**.
+  - > An atomic operation is, by definition, a single operation that either succeeds completely or fails completely
 - choose availability: 保证可用，返回旧信息。但是这不是一致的
+  - > Responses return the most readily available version of the data available on any node
 
 ## 有什么问题？
 
 当没有network partitions的时候怎么选？
 其次，保证可用的情况下，如果需要很长时间返回，虽然可用，但是业务可能无法接受。
 大部分情况下，分区是平稳运行的，并不会出错，这时候该怎么选？
+
+## ref
+
+<https://www.donnywals.com/what-does-atomic-mean-in-programming/>
 
 # PACELC Theorem
 
@@ -677,7 +852,38 @@ P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency
 Ref:
 <https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052>
 
-# Consistant hashing
+# Leader and Follower
+
+> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
+> election can be started
+
+> The server which receives votes from the majority of the servers, transitions to leader
+> state. The majority is determined as discussed in Quorum. Once elected, the leader
+> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
+> specified time interval, a new leader election is triggered.
+
+# Heartbeat
+
+## What is?
+
+Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
+
+## how
+
+> Heartbeating is one of the mechanisms for detecting failures in a distributed
+system. If there is a central server, all servers periodically send a heartbeat
+message to it.
+
+> If there is no central server, all servers randomly choose a set
+of servers and send them a heartbeat message every few seconds. This way,
+if no heartbeat message is received from a server for a while, the system can
+suspect that the server might have crashed.
+If there is no heartbeat within a
+configured timeout period, the system can conclude that the server is not
+alive anymore and stop sending requests to it and start working on its
+replacement.
+
+## Why
 
 # Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events
 
@@ -763,39 +969,6 @@ The price paid for this efficiency is that a Bloom filter is a probabilistic dat
 
 <https://llimllib.github.io/bloomfilter-tutorial/>
 
-# Leader and Follower
-
-> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
-> election can be started
-
-> The server which receives votes from the majority of the servers, transitions to leader
-> state. The majority is determined as discussed in Quorum. Once elected, the leader
-> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
-> specified time interval, a new leader election is triggered.
-
-# Heartbeat
-
-## What is?
-
-Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
-
-## how
-
-> Heartbeating is one of the mechanisms for detecting failures in a distributed
-system. If there is a central server, all servers periodically send a heartbeat
-message to it.
-
-> If there is no central server, all servers randomly choose a set
-of servers and send them a heartbeat message every few seconds. This way,
-if no heartbeat message is received from a server for a while, the system can
-suspect that the server might have crashed.
-If there is no heartbeat within a
-configured timeout period, the system can conclude that the server is not
-alive anymore and stop sending requests to it and start working on its
-replacement.
-
-## Why
-
 # Checksum
 
 ## what is?
@@ -816,6 +989,15 @@ This is to ensure data integrity.
 # Step that should be follow for System Design Interviews
 
 ## Requirement Clarification
+
+- Who is going to use it?
+- How are they going to use it?
+- How many users are there?
+- What does the system do?
+- What are the inputs and outputs of the system?
+- How much data do we expect to handle?
+- How many requests per second do we expect?
+- What is the expected read to write ratio?
 
 - 从你的认知展开问
 - 从你所掌握的system design的知识点展开（有点倒推的意思）
@@ -861,14 +1043,31 @@ the actual problem from **end to end.**
 
 ## Detailed design
 
-Focus on some single part. Need more practice
-Algorithm.
-Corner case
+Design core part. For example, for url shortening service, discuss:
+
+- Generating and storing a hash of the full url
+  - MD5 and Base62
+  - Hash collisions
+  - SQL or NoSQL
+  - Database schema
+- Translating a hashed url to the full url
+  - Database lookup
+- API and **object-oriented design**
+
+Algorithm, DB, Corner case. 注意tradeOFF.
 
 ## Identifying and resolving bottlenecks
+
+- Load balancer
+- Horizontal scaling
+- Caching
+- Database sharding
+
+这部分涉及什么？
 
 # System design blog I follow
 
 - <https://www.educative.io/courses/grokking-the-system-design-interview>
 - <https://medium.com/must-know-computer-science>
 - <http://www.ayqy.net/blog/category/back-end/>
+- <https://github.com/donnemartin/system-design-primer>

@@ -265,82 +265,6 @@ Because LB can also be a SPF(single point of failure). We can add another LB to 
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview>
 - <http://www.ayqy.net/blog/load-balancing/>
 
-# Caching
-
-Caches take advantage of the locality of reference principle: **recently requested data is likely to be requested again**
-
-## 缓存的一些概念
-
-- 缓存命中：当某个请求访问缓存得到相应时，称之为缓存命中
-- 最大空间：缓存通常位于内存中。因此缓存的空间一般不会特别大。
-- 清空策略：因此当缓存存放的数据量超过最大空间时，需要采取一定策略淘汰一些数据
-
-## 为什么需要缓存?
-
-提高效率，不浪费资源。利用缓存层来吸收不均匀的负载和流量高峰：
-
-> Popular items can skew the distribution, causing bottlenecks. Putting a cache in front of a database can help absorb uneven loads and spikes in traffic.
-
-## 怎么做？--缓存的位置
-
-缓存基本处于数据层前的任何一层。减少最终抵达数据库的请求。缓存通常用于最接近front end的层面。这样更快
-缓存的位置可以有（从进到远）：
-
-- 客户端缓存：浏览器缓存。HTTP缓存
-- 反向代理
-- Web 缓存：CDN
-- 应用层的本地缓存
-- 应用层的分布式缓存：Redis这种“键值存储”
-- 数据库的缓存：一些数据库有一些查询缓存。
-
-### Application cache
-
-What happens when you expand this to many nodes? If the request layer is
-expanded to multiple nodes, it’s still quite possible to have each node host its
-own cache. However, if your load balancer randomly distributes requests
-across the nodes, the same request will go to different nodes, thus increasing
-cache misses. Two choices for overcoming this hurdle are **global caches and
-distributed caches.**
-
-这里讲的就是本地缓存和分布式缓存
-
->本地缓存：指的是在应用中的缓存组件，其最大的优点是应用和cache是在同一个进程内部，请求缓存非常快速，没有过多的网络开销等，在单应用不需要集群支持或者集群情况下各节点无需互相通知的场景下使用本地缓存较合适；同时，它的缺点也是应为缓存跟应用程序耦合，**多个应用程序无法直接的共享缓存**，**各应用或集群的各节点都需要维护自己的单独缓存，对内存是一种浪费**。
-
->分布式缓存：指的是与**应用分离**的缓存组件或服务，其最大的优点是**自身就是一个独立的应用**，与本地应用隔离，多个应用可直接的共享缓存。
-
-## 缓存存在的问题
-
-### Cache invalidation
-
-Consistency of Cache <=> DB
-
-- cache-aside
-- write-through cache
-- write-around cache
-- write-back cache
-  
-### Cache **eviction** policies
-
-- FIFO
-- LIFO
-- LRU
-- LFU
-- MRU
-- RR(Random Replacement)
-
-## Code sample: LRU, LFU
-
-- LRU: <https://leetcode.com/problems/lru-cache/>
-- LFU
-
-## Ref
-
-- <https://tech.meituan.com/2017/03/17/cache-about.html>
-- <http://www.ayqy.net/blog/caching/>
-- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/caching>
-- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/cdn>
-- <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98.html#%E4%B8%80%E3%80%81%E7%BC%93%E5%AD%98%E7%89%B9%E5%BE%81>
-
 # CDN
 
 ## what is CDN
@@ -390,8 +314,6 @@ translate domain names to IP address.
 > DNS services have recently come under DDoS attack, preventing users from
 > accessing websites such as Twitter without knowing Twitter's IP address(es).
 
-# Message Queue
-
 # Application Server
 
 ## what is
@@ -416,6 +338,39 @@ Application server handle logic, while web server only handle http requests back
 
 every server contains exactly the same codebase and does not store any user-related data, like sessions or profile pictures, on local disc or memory
 <https://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>
+
+# Heartbeat
+
+## What is?
+
+Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
+
+## how
+
+> Heartbeating is one of the mechanisms for detecting failures in a distributed
+system. If there is a central server, all servers periodically send a heartbeat
+message to it.
+
+> If there is no central server, all servers randomly choose a set
+of servers and send them a heartbeat message every few seconds. This way,
+if no heartbeat message is received from a server for a while, the system can
+suspect that the server might have crashed.
+If there is no heartbeat within a
+configured timeout period, the system can conclude that the server is not
+alive anymore and stop sending requests to it and start working on its
+replacement.
+
+## Why
+
+# Leader and Follower
+
+> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
+> election can be started
+
+> The server which receives votes from the majority of the servers, transitions to leader
+> state. The majority is determined as discussed in Quorum. Once elected, the leader
+> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
+> specified time interval, a new leader election is triggered.
 
 
 # Proxy
@@ -482,7 +437,6 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - <https://serverfault.com/questions/127021/what-is-the-difference-between-load-balancer-and-reverse-proxy>
 - <https://stackoverflow.com/questions/59782057/what-is-the-difference-between-reverse-proxy-and-load-balancer>
 
-
 # SQL and NoSQL
 
 ## 是什么
@@ -494,6 +448,13 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 > store data in rows and columns. Each row contains all
 the information about one entity and each column contains all the separate
 data points.
+
+ACID in SQL
+
+- Atomicity - Each transaction is **all or nothing**
+- Consistency - Any transaction will bring the database from one valid state to another
+- Isolation - Executing transactions concurrently has the same results as if the transactions were executed serially
+- Durability - Once a transaction has been committed, it will remain so
 
 MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
@@ -515,6 +476,8 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 | Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
 
 ## 怎么用？
+
+见下：replication and redundancy
 
 使用no-sql的话，
 
@@ -578,58 +541,32 @@ When CRUD happen, index are also need to be updated.
 - <https://docs.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver15>
 - <https://docs.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver15>
 
-# Redundancy and Replication
+DB scale
 
-## What is?
+# Scale SQL DB
 
-redundancy
+怎么scale
 
-- duplication of critical components or functions of a system
-- with the intention of increasing the reliability of the system,
-- usually in the form of a backup or fail-safe, or to improve actual system performance
+### SQL
 
-Replication
+There are many techniques to scale a relational database
 
-sharing information to ensure **consistency** between redundant resources
+| Type      | Concept | advantage |disadvantage |
+| ----------- | -----------| -----------  | ----------- |
+| master-slave replication   | master server read and write, replicate to slave <br> slave server can also replicate to other slave. <br> If master goes offline, slave will promote to a new master(election？)  |  | election logic add complexity |
+| master-master replication  | Both masters serve reads and writes and coordinate with each other on writes. | If either master goes down, the system can continue to operate with both reads and writes. | 1. load balancer or specific logic to decide where to read and write <br> 2. increase write latency due to sync between them <br> 3. Conflict |
+| federation - functional partitioning  |  splits up databases by function | 1. less read and write traffic to each database and therefore less replication lag <br> 2. Smaller databases result in more data that can fit in memory, which in turn results in more cache hits due to improved cache locality <br> 3. With no single central master serializing writes you can write in parallel, increasing throughput.| 1. Federation is not effective if your schema requires huge functions or tables. <br> 2. You'll need to **update your application logic** to determine which database to read and write. <br>  Joining data from two databases is more complex with a server link. <br>  Federation adds more hardware and additional complexity.  |
+| sharding | sharding is split by rows on database | less read and write <br> more cache hits if data is small |  1. application logic to route read/write request to correct server <br> 2. Data distribution <- consistent hashing <br> 3. Similarly, join data from different tables increase complexity <br> 4. More hardware and complexity |
+| Denormalization | Redundant copies of the data are written in multiple tables to avoid expensive joins |  | 1. Data is duplicated. <br> 2. Constraints can help redundant copies of information stay in sync, which increases complexity of the database design. <br> 3. A denormalized database under heavy write load might perform worse than its normalized counterpart |
+SQL tuning
 
-复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
+Disadvantage(s): replication
 
-> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
-
-## 用来做什么？
-
-提升可靠性，
-
-包括性能？性能提高体现在哪里？
-
-## 怎么做？
-
-### 结构
-
-- 一主多从
-- 多主多从
-- 无主多从
-
-### 方法
-
-- 异步复制
-  - 优势：无需等待复制完成，性能没有太大影响
-  - 劣势:
-    - 无法保证强一致性
-    - 数据丢失
-  
-- 同步复制
-  - 优势
-    - 强一致性
-  - 劣势
-    - 一挂全挂
-    - 性能问题
-
-- 半同步复制
-
-
-
-## Quorum
+- There is a potential for loss of data if the master fails before any newly written data can be replicated to other nodes.
+- Writes are replayed to the read replicas. If there are a lot of writes, the read replicas can get bogged down with replaying writes and can't do as many reads.
+- The more read slaves, the more you have to replicate, which leads to greater replication lag.
+- On some systems, writing to the master can spawn multiple threads to write in parallel, whereas read replicas only support writing sequentially with a single thread.
+- Replication adds more hardware and additional complexity.
 
 # Data partitioning
 
@@ -764,6 +701,57 @@ ref:
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/data-partitioning>
 - <http://www.ayqy.net/blog/database-partitioning/>
 
+# Redundancy and Replication
+
+## What is?
+
+redundancy
+
+- duplication of critical components or functions of a system
+- with the intention of increasing the reliability of the system,
+- usually in the form of a backup or fail-safe, or to improve actual system performance
+
+Replication
+
+sharing information to ensure **consistency** between redundant resources
+
+复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
+
+> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
+
+## 用来做什么？
+
+提升可靠性，
+
+包括性能？性能提高体现在哪里？
+
+## 怎么做？
+
+### 结构
+
+- 一主多从
+- 多主多从
+- 无主多从
+
+### 方法
+
+- 异步复制
+  - 优势：无需等待复制完成，性能没有太大影响
+  - 劣势:
+    - 无法保证强一致性
+    - 数据丢失
+  
+- 同步复制
+  - 优势
+    - 强一致性
+  - 劣势
+    - 一挂全挂
+    - 性能问题
+
+- 半同步复制
+
+## Quorum
+
 # Consistant hashing
 
 # Consistency  
@@ -779,6 +767,85 @@ ref:
   - 通常在highly available的系统中
 - 强一致性 最强
   - 写完，立刻同步，立即能读到，文件系统。
+
+# Caching
+
+Caches take advantage of the locality of reference principle: **recently requested data is likely to be requested again**
+
+## 缓存的一些概念
+
+- 缓存命中：当某个请求访问缓存得到相应时，称之为缓存命中
+- 最大空间：缓存通常位于内存中。因此缓存的空间一般不会特别大。
+- 清空策略：因此当缓存存放的数据量超过最大空间时，需要采取一定策略淘汰一些数据
+
+## 为什么需要缓存?
+
+提高效率，不浪费资源。利用缓存层来吸收不均匀的负载和流量高峰：
+
+> Popular items can skew the distribution, causing bottlenecks. Putting a cache in front of a database can help absorb uneven loads and spikes in traffic.
+
+## 怎么做？--缓存的位置
+
+缓存基本处于数据层前的任何一层。减少最终抵达数据库的请求。缓存通常用于最接近front end的层面。这样更快
+缓存的位置可以有（从进到远）：
+
+- 客户端缓存：浏览器缓存。HTTP缓存
+- 反向代理
+- Web 缓存：
+- CDN
+- 应用层的本地缓存
+- 应用层的分布式缓存：Redis这种“键值存储”
+- 数据库的缓存：一些数据库有一些查询缓存。
+
+### Application cache
+
+What happens when you expand this to many nodes? If the request layer is
+expanded to multiple nodes, it’s still quite possible to have each node host its
+own cache. However, if your load balancer randomly distributes requests
+across the nodes, the same request will go to different nodes, thus increasing
+cache misses. Two choices for overcoming this hurdle are **global caches and
+distributed caches.**
+
+这里讲的就是本地缓存和分布式缓存
+
+>本地缓存：指的是在应用中的缓存组件，其最大的优点是应用和cache是在同一个进程内部，请求缓存非常快速，没有过多的网络开销等，在单应用不需要集群支持或者集群情况下各节点无需互相通知的场景下使用本地缓存较合适；同时，它的缺点也是应为缓存跟应用程序耦合，**多个应用程序无法直接的共享缓存**，**各应用或集群的各节点都需要维护自己的单独缓存，对内存是一种浪费**。
+
+>分布式缓存：指的是与**应用分离**的缓存组件或服务，其最大的优点是**自身就是一个独立的应用**，与本地应用隔离，多个应用可直接的共享缓存。
+
+## 缓存存在的问题
+
+### Cache Update Strategy 
+
+We make sure the consistency between Cache and DB to avoid cache invalidation
+
+- cache-aside
+- write-through cache
+- write-around cache
+- write-back cache
+  
+### Cache **eviction** policies
+
+- FIFO
+- LIFO
+- LRU
+- LFU
+- MRU
+- RR(Random Replacement)
+
+## Code sample: LRU, LFU
+
+- LRU: <https://leetcode.com/problems/lru-cache/>
+- LFU
+
+## Ref
+
+- <https://tech.meituan.com/2017/03/17/cache-about.html>
+- <http://www.ayqy.net/blog/caching/>
+- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/caching>
+- <https://docs.microsoft.com/en-us/azure/architecture/best-practices/cdn>
+- <http://www.cyc2018.xyz/%E5%85%B6%E5%AE%83/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98.html#%E4%B8%80%E3%80%81%E7%BC%93%E5%AD%98%E7%89%B9%E5%BE%81>
+
+# Message Queue
 
 # CAP Theorem
 
@@ -852,38 +919,6 @@ P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency
 Ref:
 <https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052>
 
-# Leader and Follower
-
-> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
-> election can be started
-
-> The server which receives votes from the majority of the servers, transitions to leader
-> state. The majority is determined as discussed in Quorum. Once elected, the leader
-> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
-> specified time interval, a new leader election is triggered.
-
-# Heartbeat
-
-## What is?
-
-Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
-
-## how
-
-> Heartbeating is one of the mechanisms for detecting failures in a distributed
-system. If there is a central server, all servers periodically send a heartbeat
-message to it.
-
-> If there is no central server, all servers randomly choose a set
-of servers and send them a heartbeat message every few seconds. This way,
-if no heartbeat message is received from a server for a while, the system can
-suspect that the server might have crashed.
-If there is no heartbeat within a
-configured timeout period, the system can conclude that the server is not
-alive anymore and stop sending requests to it and start working on its
-replacement.
-
-## Why
 
 # Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events
 

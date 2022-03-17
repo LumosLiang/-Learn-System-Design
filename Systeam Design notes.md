@@ -1,4 +1,4 @@
-# System design notes for “Grokking the System Design Interview”
+# System design notes
 
 系统设计学习笔记：
 
@@ -8,6 +8,18 @@
 - 这样实现有什么样的问题？-> 不同实现之间，有什么优劣
 
 Everything is a trade-off
+
+特性和特性比较
+每一个components：
+- LB, CACHE, DNS, CDN, Application server(microservice), web server, message queue, DB.
+
+理念, heartbeat, lead and folower, CAP, PACELC.
+
+client端连接 - communication
+- TLS/SSL, TCP, UDP
+- https
+- API, RPC, RESTfull, SOAP
+- Ajax calling, socket
 
 # Key Characteristics
 
@@ -19,9 +31,8 @@ Everything is a trade-off
   - By adding more resources, RAM, CPU, Storage.
 
 想法：
+    scalability是不是在讨论DB的扩展？还是泛指其他的
 
-    scalability是不是在讨论DB的扩展？还是泛指其他的 
-    
     横向扩展就是加机器，组成集群？形成拓扑结构?
     
     多机器以后：
@@ -49,6 +60,13 @@ Scalability的Topics covered:
 
 所以scalability包含LB，Caching，DB replication， DB partition等等一切可以使系统scale up的概念
 
+Scalability is not always good?
+
+- Scaling horizontally introduces more complexity and require clone servers
+  - Server should be stateless, they should only be responsible for logic handling
+  - Session can be store in the centralized database
+- downstream servers such as cache and DB need to handle more simultaneous connections when upstream server scale out
+
 ***
 
 ## Reliability 可靠
@@ -73,41 +91,6 @@ real-world conditions that can occur.
 - availabilty VS reliability
   - reliability --> availabilty
   - availabilty -X-> reliability
-
-有两种方法可以支撑高可用性：
-
-- fail-over
-  - active-passive(master-slave failover):
-    - there is master server, it regularly send hearbeat signal to the backup server. Once master is down, backup server takes over and resume the service
-  - active-active(master-master failover):
-    - there are two main servers, and they are all managing the traffic
-    - LB
-  - failover不好的地方在于：
-    - 增加硬件，增加复杂度
-    - potential of loss of data
-
-- replication
-  - 见replication章节
-
-如何评价和计算availablity：
-
-- 99.99 vs 99.9
-  - <https://azure.microsoft.com/en-us/support/legal/sla/summary/>
-- parallel vs in sequence
-  - if a system has many components and each components has a chance to fail, then the overall availability are:
-    - parallel:
-
-      ```
-      Availability (Total) = 1 - (1 - Availability (Foo)) * (1 - Availability (Bar))
-      ```
-
-    - in sequence :
-
-      ```
-      Availability (Total) = Availability (Foo) * Availability (Bar)
-      ```
-
-***
 
 ## Efficiency
 
@@ -135,22 +118,39 @@ Other measurements:
 
 ***
 
+## Consistency  
+
+什么是一致性？
+
+- 弱一致性（最弱）
+  - 写完不一定能读到, 比如游戏，视频，网络电话。
+- 最终一致性
+  - 写完，异步复制，最终可以读到，比如Email, DNS
+  - 通常在highly available的系统中
+- 强一致性 最强
+  - 写完，立刻同步，立即能读到，文件系统。
+
 ## Servicebility and manageability 可维护性
 
 Serviceability or manageability is the simplicity and speed with which a system can be repaired or maintained
 
 比如当出现故障时，自动打电话给相应的维护人员。
 
+# Comparsion between different metrics
+
 ## Performance VS scalability
 
-A service is scalable if it results in increased performance in a manner proportional to resources addeds
+**A service is scalable if it results in increased performance** in a manner proportional to resources addeds
+成正相关的。
 
 - If you have a performance problem, your system is slow for a single user.
 - If you have a scalability problem, your system is fast for a single user but slow under heavy load.
 
 ## Latency vs throughput
 
-见Efficiency
+**generally you should aim for maximum throughoput with acceptable latency.**
+
+详细见Efficiency
 
 ## Availability vs consistency
 
@@ -164,7 +164,128 @@ A service is scalable if it results in increased performance in a manner proport
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/design-principles/redundancy>
 - <https://www.techopedia.com/definition/14533/queries-per-second-qps>
 - <https://segmentfault.com/a/1190000010844969>
+
+# Heartbeat
+
+## What is?
+
+Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
+
+## how
+
+> Heartbeating is one of the mechanisms for detecting failures in a distributed
+system. If there is a central server, all servers periodically send a heartbeat
+message to it.
+
+> If there is no central server, all servers randomly choose a set
+of servers and send them a heartbeat message every few seconds. This way,
+if no heartbeat message is received from a server for a while, the system can
+suspect that the server might have crashed.
+If there is no heartbeat within a
+configured timeout period, the system can conclude that the server is not
+alive anymore and stop sending requests to it and start working on its
+replacement.
+
+## Why
+
+To check the health status of other servers. I think this is the base of the:
   
+- replication
+- fail over
+- election
+
+# Leader and Follower
+
+> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
+> election can be started
+
+> The server which receives votes from the majority of the servers, transitions to leader
+> state. The majority is determined as discussed in Quorum. Once elected, the leader
+> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
+> specified time interval, a new leader election is triggered.
+
+I guess "leader and Follower" is actually "master/slave"
+
+# CDN
+
+## what is CDN
+
+CDN is distributed content server network. Serving content to nearest service end-users.
+It generally store static data, like html, js, css file.
+
+## Push CDNs vs Pull CDNs
+
+1. Push CDNs receive new content whenever changes occur on your server. You take full responsibility for providing content, uploading directly to the CDN and rewriting URLs to point to the CDN. You can configure when content expires and when it is updated. Content is uploaded only when it is new or changed, minimizing traffic, but maximizing storage.
+
+   > **Sites with a small amount of traffic**or sites with content that isn't often updated **work well** with push CDNs. Content is placed on the CDNs once, instead of being re-pulled at regular intervals.
+
+2. Pull CDNs grab new content from your server when the first user requests the content. You leave the content on your server and rewrite URLs to point to the CDN. This results in a slower request until the content is cached on the CDN.
+    > Sites with heavy traffic work well with pull CDNs, as traffic is spread out more evenly with only recently-requested content remaining on the CDN.
+
+> A time-to-live (TTL) determines how long content is cached. Pull CDNs minimize storage space on the CDN, but can create redundant traffic if files expire and are pulled before they have actually changed.
+
+## Good or bad
+
+Good: Faster experience. Choose between Pull or Push
+Bad:
+
+- expensive
+- content could be stale due if updated before TTL ends
+- CDN require configuring.
+
+# DNS
+
+## What is it
+
+translate domain names to IP address.
+
+## how it work
+
+- client contact DNS server(maybe according to outbound IP) to get
+- if there is no cache, this DNS server just look up until root server to find the relevant map.
+- Once find, this DNS server will cache this in itself and also send result to the client
+- client just make request.
+
+## Who maintain DNS
+
+- 13 root server managed mainly by verisign, US army, US research party.
+- These are the secondary servers maintained by Governments, ISP's, and private companies like Google, OpenDNS. These servers get stuff from the Root Servers and cache them and they feed it to us the users. These are faster than the root server because results are cached from the Root Servers.
+
+## disadvantage
+
+> Accessing a DNS server introduces a **slight delay**, although mitigated by caching described above.
+>
+> DNS server management could be complex and is generally managed by governments,
+> ISPs, and large companies.
+>
+> DNS services have recently come under DDoS attack, preventing users from
+> accessing websites such as Twitter without knowing Twitter's IP address(es).
+
+# Application Server
+
+## what is?
+
+In the application layer, there could be component like microservice, service discovery, etc.
+
+## Web server vs application server
+
+Application server handle logic, while web server only handle http requests back and forth.
+
+<https://stackoverflow.com/questions/936197/what-is-the-difference-between-application-server-and-web-server>
+
+## Disadvantage
+
+- Increase complexity. Need a well configuration and design from the "architectural, operations, and process viewpoint" Perspective
+- deployment and operations
+- So still depend on how your business is. The scale, the DAU, sth like that.
+
+## Ref
+
+<https://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones>
+
+every server contains exactly the same codebase and does not store any user-related data, like sessions or profile pictures, on local disc or memory
+<https://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>
+
 # Load Balancing
 
 ## Concept
@@ -205,16 +326,15 @@ This should regularly happening
 
 ### Algorithms
 
-- Least Connection Method
-  - when there are a large number of persistent client connections which are **unevenly** distributed between the servers.
+- Least Connection Method： when there are a large number of **persistent** client connections which are **unevenly** distributed between the servers.
 
 - Least Response Time Method > lowest response time
+  
 - Least Bandwidth Method > the server who serve the least amount traffic
-- Round Robin methond
-  - when the servers are of **equal specification** and there are not many persistent connections.
 
-- Weighted Round Robin Method
-  - better handle the different specificatioin
+- Round Robin methond: when the servers are of **equal specification** and there are not many persistent connections.
+
+- Weighted Round Robin Method: better handle the different specificatioin
   
 - IP hash
   - The load balancer routes requests from the same client to the same backend server as long as that server is available.
@@ -226,7 +346,7 @@ This should regularly happening
 - L4， L7 各自是什么
   - L4:
     - in the transport layer
-    - looking at the source, destination IP, ports in the header, but not conent
+    - looking at the source, destination IP, ports in the header, but not content
     - Do NAT
   - L7
     - in the application layer
@@ -241,10 +361,11 @@ This should regularly happening
 
 LB可以带来：
 
-- 终端用户可以体验更好：更快，无中断的服务
+- 终端用户可以体验更好：**更快**，无中断的服务,latency?
 - 更少的downtime的时间。
 - SMART的LB可以提供business insight
 - 对于Systeam admin，更易于manage
+- session persistence
 
 ## how bad
 
@@ -252,7 +373,7 @@ LB可以带来：
 >
 > Introducing a load balancer to help eliminate a single point of failure results in increased complexity.
 >
-> A single load balancer is a single point of failure, configuring multiple load balancers further increases complexity.
+> A single load balancer is a single point of failure, while configuring multiple load balancers further **increases complexity.**
 
 To resolve, introduce redundant LB
 
@@ -264,114 +385,6 @@ Because LB can also be a SPF(single point of failure). We can add another LB to 
 
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview>
 - <http://www.ayqy.net/blog/load-balancing/>
-
-# CDN
-
-## what is CDN
-
-CDN is distributed content server network. Serving content to nearest service end-users.
-It generally store static data, like html, js, css file.
-
-## Push CDNs vs Pull CDNs
-
-> Push CDNs receive new content whenever changes occur on your server. You take full responsibility for providing content, uploading directly to the CDN and rewriting URLs to point to the CDN. You can configure when content expires and when it is updated. Content is uploaded only when it is new or changed, minimizing traffic, but maximizing storage.
-
-> Sites with a small amount of traffic or sites with content that isn't often updated work well with push CDNs. Content is placed on the CDNs once, instead of being re-pulled at regular intervals.
-
-> Pull CDNs grab new content from your server when the first user requests the content. You leave the content on your server and rewrite URLs to point to the CDN. This results in a slower request until the content is cached on the CDN.
-
-> A time-to-live (TTL) determines how long content is cached. Pull CDNs minimize storage space on the CDN, but can create redundant traffic if files expire and are pulled before they have actually changed.
-
-> Sites with heavy traffic work well with pull CDNs, as traffic is spread out more evenly with only recently-requested content remaining on the CDN.
-
-##
-
-# DNS
-
-## What is it
-
-translate domain names to IP address.
-
-## how it work
-
-- client contact DNS server(maybe according to outbound IP) to get
-- if there is no cache, this DNS server just look up until root server to find the relevant map.
-- Once find, this DNS server will cache this in itself and also send result to the client
-- client just make request.
-
-## Who maintain DNS
-
-- 13 root server managed mainly by verisign, US army, US research party.
-- These are the secondary servers maintained by Governments, ISP's, and private companies like Google, OpenDNS. These servers get stuff from the Root Servers and cache them and they feed it to us the users. These are faster than the root server because results are cached from the Root Servers.
-
-## disadvantage
-
-> Accessing a DNS server introduces a **slight delay**, although mitigated by caching described above.
->
-> DNS server management could be complex and is generally managed by governments,
-> ISPs, and large companies.
->
-> DNS services have recently come under DDoS attack, preventing users from
-> accessing websites such as Twitter without knowing Twitter's IP address(es).
-
-# Application Server
-
-## what is
-
-In the application layer, there could be component like microservice, service discovery, etc.
-
-## Web server vs application server
-
-Application server handle logic, while web server only handle http requests back and forth.
-
-<https://stackoverflow.com/questions/936197/what-is-the-difference-between-application-server-and-web-server>
-
-## Disadvantage
-
-- Increase complexity. Need a well configuration and design from the "architectural, operations, and process viewpoint" Perspective
-- deployment and operations
-- So still depend on how your business is. The scale, the DAU, sth like that.
-
-## Ref
-
-<https://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones>
-
-every server contains exactly the same codebase and does not store any user-related data, like sessions or profile pictures, on local disc or memory
-<https://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>
-
-# Heartbeat
-
-## What is?
-
-Each server periodically sends a hearbeat message to a central monitoring server or other servers in the system to show that it is still alive and functioning
-
-## how
-
-> Heartbeating is one of the mechanisms for detecting failures in a distributed
-system. If there is a central server, all servers periodically send a heartbeat
-message to it.
-
-> If there is no central server, all servers randomly choose a set
-of servers and send them a heartbeat message every few seconds. This way,
-if no heartbeat message is received from a server for a while, the system can
-suspect that the server might have crashed.
-If there is no heartbeat within a
-configured timeout period, the system can conclude that the server is not
-alive anymore and stop sending requests to it and start working on its
-replacement.
-
-## Why
-
-# Leader and Follower
-
-> HeartBeat mechanism is used to detect if an existing leader has failed, so that new leader
-> election can be started
-
-> The server which receives votes from the majority of the servers, transitions to leader
-> state. The majority is determined as discussed in Quorum. Once elected, the leader
-> continuously sends HeartBeat to all the followers. If followers do not get a heartbeat in
-> specified time interval, a new leader election is triggered.
-
 
 # Proxy
 
@@ -403,11 +416,11 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - Anonymous proxy: 匿名代理, 不公开客户端原始IP地址的代理服务
 - 透明代理: 不作任何修改，一般用作网关，路由器。
 
-### Reverse Proxy
+# Reverse Proxy (Web Server)
 
 > retrieves resources on behalf of a client from one or more servers. These resources are then returned to the client, appearing as if they originated from the proxy server itself.
 
-如何理解反向搭理？
+## 如何理解反向搭理？
 
 - 反向代理是和服务器密切相关的。
 - 正向代理是其关联的客户端和外界服务器的中介。而反向代理则是其关联服务器和外界客户端的中介
@@ -415,14 +428,14 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - 反向代理可以保护内网服务器，不为外界所知
 - 就可以把反向代理理解成“服务器作为客户端的正向代理”
 
-反向代理的作用：
+## 反向代理的作用
 
-- 加密
-- 负载均衡
-- 缓存
-- 安全防护
-- 访问控制
-- 托管静态内容
+- security: hide your backend, avoid DDoS，访问控制 -> 加密
+- scalability and flexibility -> 负载均衡
+- Web-acceleration
+  - 压缩：compress response. gzip
+  - encryption
+  - 托管静态内容
 
 ## Reverse proxy VS load balancer
 
@@ -432,16 +445,24 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 
 ## Ref
 
+- <https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer/>
 - <http://www.ayqy.net/blog/reverse-proxy/>
 - <https://docs.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/map-requests#reverse-proxies>
 - <https://serverfault.com/questions/127021/what-is-the-difference-between-load-balancer-and-reverse-proxy>
 - <https://stackoverflow.com/questions/59782057/what-is-the-difference-between-reverse-proxy-and-load-balancer>
 
-# SQL and NoSQL
 
-## 是什么
 
-### SQL
+
+
+
+# DB
+
+## SQL and NoSQL
+
+### 是什么
+
+#### SQL
 
 关系型数据库，提供的数据存储，检索机制是基于表关系建模的。
 
@@ -458,7 +479,7 @@ ACID in SQL
 
 MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 
-### No-SQL
+#### No-SQL
 
 - 非关系型数据库。提供的数据存储，检索机制并不是基于表关系建模的。
 - 在关系型数据库之外的广阔世界里，数据不一定非要打平存放到二维表格里，关系也不是只能用**主键、外键、关系表**来描述
@@ -466,7 +487,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 - 从实践角度来看，用NoSQL的方式使用MySQL数据库也算
   - 比如在数据表中存一列 JSON 字符串，把这一列当作键值数据库来用
 
-#### No-Sql比较
+ No-Sql比较
 
 | Type      | Concept | Example | Apply to
 | ----------- | ----------- | ----------- | ----------- |
@@ -475,7 +496,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 | Wide-Column Databases  |  1. Concept: column, super column, column families, super column families. <br> 2. 本质是二维MAP。<br> 3. 高性能以及良好的扩展性 | Cassandra, HBase   | 适用于非常大的数据集，被 Twitter、Facebook 等社交网络用来存储海量用户所产生的数据 |
 | Graph | 1. These databases are used to store data whose **relations** are best represented in a graph <br> 2. 数据基于图来建模 <br> 3. 图中每个节点代表一条记录，每条边表示节点之间的关系   | Neo4J  | 描述复杂关系的场景
 
-## 怎么用？
+### 怎么用？
 
 见下：replication and redundancy
 
@@ -484,9 +505,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 - 就把一部分的工作从数据库转移到了应用层面。
 - 应用层更容易横向扩展，这种转移有助于提升系统的可扩展性
 
-## 有什么问题
-
-### basic difference
+###  SQL and NoSQL比较
 
 | Type      | SQL | No-SQL |
 | ----------- | ----------- | ----------- |
@@ -502,6 +521,8 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 | Advantage | 1. ensure ACID compliance <br> 2. 明确的扩展模式<br> 3. community support | 1. 易于扩展 <br> 2. 无需复杂的连表查询 <br> 3. 与OOP一致，易于使用 <br> 4. 无需预先定义，修改成本低 <br> 5. 读写性能高， 大数据 |
 | Disadvantage | 1.复杂的连表查询导致数据读取性能不佳 <br> 2. 不方便扩展 <br> 3. 关系模型和OOP有差异 <br> 4. 只支持存取结构化数据，关系模式（如表结构）必须预先定义，并且修改成本高 | 1.缺乏强一致性的保证 <br> 2. less community support |
 
+#### 实用场景
+
 NoSQL 数据库适用于：
 
 > - **快速变化的**数据，如点击流（click stream）数据或日志数据
@@ -512,7 +533,7 @@ NoSQL 数据库适用于：
 
 快速增长的数据？
 
-## Ref
+### Ref
 
 - <https://www.acodersjourney.com/>
 - <http://www.ayqy.net/blog/nosql/10-questions-to-ask-yourself-before-choosing-a-nosql-database/>>
@@ -523,19 +544,19 @@ NoSQL 数据库适用于：
 - <https://blog.mlab.com/2012/08/why-is-mongodb-wildly-popular/>
 - <https://stackoverflow.com/questions/8729779/why-nosql-is-better-at-scaling-out-than-rdbms>
 
-# Index
+## SQL Index
 
 Catalog 目录，
 一个B树。m阶多叉树
 写一个B树就基本可以理解index是什么，底层怎么做，以及好处坏处。
 
-## Index decrease write performance
+### Index decrease write performance
 
 When CRUD happen, index are also need to be updated.
 
     If the goal of the database is to provide a data store that is often written to and rarely read from, in that case, decreasing the performance of the more common operation, which is writing, is probably not worth the increase in performance we get from reading.
 
-## Ref
+### Ref
 
 - <https://en.wikipedia.org/wiki/B-tree>
 - <https://docs.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver15>
@@ -543,49 +564,76 @@ When CRUD happen, index are also need to be updated.
 
 DB scale
 
-# Scale SQL DB
 
-怎么scale
+## Redundancy and Replication
 
-### SQL
+### What is?
 
-There are many techniques to scale a relational database
+redundancy
 
-| Type      | Concept | advantage |disadvantage |
-| ----------- | -----------| -----------  | ----------- |
-| master-slave replication   | master server read and write, replicate to slave <br> slave server can also replicate to other slave. <br> If master goes offline, slave will promote to a new master(election？)  |  | election logic add complexity |
-| master-master replication  | Both masters serve reads and writes and coordinate with each other on writes. | If either master goes down, the system can continue to operate with both reads and writes. | 1. load balancer or specific logic to decide where to read and write <br> 2. increase write latency due to sync between them <br> 3. Conflict |
-| federation - functional partitioning  |  splits up databases by function | 1. less read and write traffic to each database and therefore less replication lag <br> 2. Smaller databases result in more data that can fit in memory, which in turn results in more cache hits due to improved cache locality <br> 3. With no single central master serializing writes you can write in parallel, increasing throughput.| 1. Federation is not effective if your schema requires huge functions or tables. <br> 2. You'll need to **update your application logic** to determine which database to read and write. <br>  Joining data from two databases is more complex with a server link. <br>  Federation adds more hardware and additional complexity.  |
-| sharding | sharding is split by rows on database | less read and write <br> more cache hits if data is small |  1. application logic to route read/write request to correct server <br> 2. Data distribution <- consistent hashing <br> 3. Similarly, join data from different tables increase complexity <br> 4. More hardware and complexity |
-| Denormalization | Redundant copies of the data are written in multiple tables to avoid expensive joins |  | 1. Data is duplicated. <br> 2. Constraints can help redundant copies of information stay in sync, which increases complexity of the database design. <br> 3. A denormalized database under heavy write load might perform worse than its normalized counterpart |
-SQL tuning
+- duplication of critical components or functions of a system
+- with the intention of increasing the reliability of the system,
+- usually in the form of a backup or fail-safe, or to improve actual system performance
 
-Disadvantage(s): replication
+Replication
 
-- There is a potential for loss of data if the master fails before any newly written data can be replicated to other nodes.
-- Writes are replayed to the read replicas. If there are a lot of writes, the read replicas can get bogged down with replaying writes and can't do as many reads.
-- The more read slaves, the more you have to replicate, which leads to greater replication lag.
-- On some systems, writing to the master can spawn multiple threads to write in parallel, whereas read replicas only support writing sequentially with a single thread.
-- Replication adds more hardware and additional complexity.
+sharing information to ensure **consistency** between redundant resources
 
-# Data partitioning
+复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
 
-## 是什么？
+> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
+
+### 用来做什么？
+
+提升可靠性，
+
+包括性能？性能提高体现在哪里？
+
+### 怎么做？
+
+#### 结构
+
+- 一主多从
+- 多主多从
+- 无主多从
+
+#### 方法
+
+- 异步复制
+  - 优势：无需等待复制完成，性能没有太大影响
+  - 劣势:
+    - 无法保证强一致性
+    - 数据丢失
+  
+- 同步复制
+  - 优势
+    - 强一致性
+  - 劣势
+    - 一挂全挂
+    - 性能问题
+
+- 半同步复制
+
+### Quorum
+
+## Data partitioning in SQL DB
+
+### 是什么？
 
 将单库分区。
 
-## 为什么？
+### 为什么？
 
 - 单库存在读写查找上的性能瓶颈。
 - 即使复制方案下，基于每一个数据库都有一份完整数据的情况，性能瓶颈依然存在。还在限制系统的扩展性和性能。
   - 容量有限。数据量大到单库无法容纳
   - 性能有限。查询更新慢
 
-## 怎么做？如何分区？
+### 怎么做？如何分区？
 
-### Partitioning Methods
+#### Partitioning Methods
 
-#### Horizaontal Partitioning -> **AKA Sharding(分片)**
+##### Horizaontal Partitioning -> **AKA Sharding(分片)**
 
 它是：
 
@@ -603,7 +651,7 @@ Disadvantage(s): replication
 - 要合理地选择分区的key --> shared key, 来确保流量可以被尽可能**均匀**的分散到每一个片上。
 - 这里并不是数据量，而是流量
 
-#### Vertical Partitioning
+##### Vertical Partitioning
 
 它是：
 
@@ -622,40 +670,42 @@ Disadvantage(s): replication
 - 即使是垂直分区，当业务量不断增长的时候，可能也总有一天要再次把这种“feature specific DB”再次分到多个不同的server上。
   - E.g it is not be possible for a single server to handle all the metadata queries for 10 billion photos by 140 million users
 
-#### 按功能分区
+##### 按功能分区
 
 When it's possible to identify a **bounded context** for each distinct business area in an application, functional partitioning is a way to improve isolation and data access performance.
 
 Another common use for functional partitioning is to separate **read-write data** from **read-only data**.
 
-#### 补充：Directory-Based partitioning
+##### 补充：Directory-Based partitioning
 
 This is lookup service that knows your current partitioning scheme and abstracts it away from the DB access code
 
-### 如何insert Data? -> Partitioning Criteria
+#### 如何insert Data? -> Partitioning Criteria
 
 When insert data, based on which criteria that we should follow to insert this record into relevant partitioning
 
-#### Key or hash-based Partitioning
+##### Key or hash-based Partitioning
 
 - hashing: hash(ID) % DB_count
 - consistant hashing
 
-#### List Partitioning
+##### List Partitioning
 
 each partition is assigned a list of
 values, so whenever we want to insert a new record, we will see which
 partition contains our key and then store it there.
 
-#### Round-Robin
+##### Round-Robin
 
 i mod n
 
-#### Composite Partitoning
+##### Composite Partitoning
 
 Under this scheme, we combine any of the above partitioning schemes to devise a new scheme.
 
-## 为什么好？为什么不好？Common Problems of Data Partitioning ?
+### 为什么好？为什么不好？
+
+Common Problems of Data Partitioning ?
 
 ### 怎么好？
 
@@ -701,72 +751,32 @@ ref:
 - <https://docs.microsoft.com/en-us/azure/architecture/best-practices/data-partitioning>
 - <http://www.ayqy.net/blog/database-partitioning/>
 
-# Redundancy and Replication
+## Scale SQL DB
 
-## What is?
+### different ways to scale SQL DB
 
-redundancy
+There are many techniques to scale a relational database
 
-- duplication of critical components or functions of a system
-- with the intention of increasing the reliability of the system,
-- usually in the form of a backup or fail-safe, or to improve actual system performance
+| Type      | Concept | advantage |disadvantage |
+| ----------- | -----------| -----------  | ----------- |
+| master-slave replication   | master server read and write, replicate to slave <br> slave server can also replicate to other slave. <br> If master goes offline, slave will promote to a new master(election？)  |  | election logic add complexity |
+| master-master replication  | Both masters serve reads and writes and coordinate with each other on writes. | If either master goes down, the system can continue to operate with both reads and writes. | 1. load balancer or specific logic to decide where to read and write <br> 2. increase write latency due to sync between them <br> 3. Conflict |
+| federation - functional partitioning  |  splits up databases by function | 1. less read and write traffic to each database and therefore less replication lag <br> 2. Smaller databases result in more data that can fit in memory, which in turn results in more cache hits due to improved cache locality <br> 3. With no single central master serializing writes you can write in parallel, increasing throughput.| 1. Federation is not effective if your schema requires huge functions or tables. <br> 2. You'll need to **update your application logic** to determine which database to read and write. <br>  Joining data from two databases is more complex with a server link. <br>  Federation adds more hardware and additional complexity.  |
+| sharding | sharding is split by rows on database | less read and write <br> more cache hits if data is small |  1. application logic to route read/write request to correct server <br> 2. Data distribution <- consistent hashing <br> 3. Similarly, join data from different tables increase complexity <br> 4. More hardware and complexity |
+| Denormalization | Redundant copies of the data are written in multiple tables to avoid expensive joins |  | 1. Data is duplicated. <br> 2. Constraints can help redundant copies of information stay in sync, which increases complexity of the database design. <br> 3. A denormalized database under heavy write load might perform worse than its normalized counterpart |
+SQL tuning
 
-Replication
+### Disadvantage(s): replication
 
-sharing information to ensure **consistency** between redundant resources
+- There is a potential for loss of data if the master fails before any newly written data can be replicated to other nodes.
+- Writes are replayed to the read replicas. If there are a lot of writes, the read replicas can get bogged down with replaying writes and can't do as many reads.
+  - This part is related to "heavy read" or "heavy write"
+- The more read slaves, the more you have to replicate, which leads to greater replication lag.
+- On some systems, writing to the master can spawn multiple threads to write in parallel, whereas read replicas only support writing sequentially with a single thread.
+- Replication adds more hardware and additional complexity.
 
-复制不是单纯的复制数据库，更重要的是，这里面存在的数据同步机制，来确保数据库的一致性。
 
-> 数据库与应用服务最大的区别在于，应用服务可以是无状态的（或者可以将共享状态抽离出去，比如放到数据库），而数据库操作一定是有状态的，在扩展数据库时必须要考虑数据的一致性
-
-## 用来做什么？
-
-提升可靠性，
-
-包括性能？性能提高体现在哪里？
-
-## 怎么做？
-
-### 结构
-
-- 一主多从
-- 多主多从
-- 无主多从
-
-### 方法
-
-- 异步复制
-  - 优势：无需等待复制完成，性能没有太大影响
-  - 劣势:
-    - 无法保证强一致性
-    - 数据丢失
-  
-- 同步复制
-  - 优势
-    - 强一致性
-  - 劣势
-    - 一挂全挂
-    - 性能问题
-
-- 半同步复制
-
-## Quorum
-
-# Consistant hashing
-
-# Consistency  
-
-## 是什么？
-
-什么是一致性？
-
-- 弱一致性（最弱）
-  - 写完不一定能读到, 比如游戏，视频，网络电话。
-- 最终一致性
-  - 写完，异步复制，最终可以读到，比如Email, DNS
-  - 通常在highly available的系统中
-- 强一致性 最强
-  - 写完，立刻同步，立即能读到，文件系统。
+## An important feature: Consistant hashing
 
 # Caching
 
@@ -814,7 +824,7 @@ distributed caches.**
 
 ## 缓存存在的问题
 
-### Cache Update Strategy 
+### Cache Update Strategy
 
 We make sure the consistency between Cache and DB to avoid cache invalidation
 
@@ -852,12 +862,12 @@ We make sure the consistency between Cache and DB to avoid cache invalidation
 ## 是什么？
 
 - C: consistency -> all nodes see the same data at same time or error
-  
   每次读取都能得到最新写入的结果，**抑或出错**
+
 - A: Availability -> every request receive by non-failing node must result in a response, but without guarantee that it contains the most recnet version of the information
-  
   每个请求都能收到正常响应，但不保证返回的是最新信息
-- P: Partition -> communication break (or a network failure) between any two nodes in the system
+
+- P: Partition -> **communication break** (or a network failure) between any two nodes in the system
   
   即便有一部分由于网络故障down掉了，系统仍能继续运行
 
@@ -868,17 +878,19 @@ We make sure the consistency between Cache and DB to avoid cache invalidation
 - 性能与可扩展性 Performance and scalability
   - 服务可以通过加资源的方式成比例的提升性能
   - 但资源也会引入多样性。新旧节点的不同引起的异质性会影响性能
+  
 - 延迟与吞吐量 latency and throughput
   - 吞吐量是指单位时间内所能处理的操作数
   - 无法兼具低延迟和高吞吐量，所以可能权衡的原则是：在一定延迟的情况下，尽可能追求最大的吞吐量
-- 可用性与一致性 availiblity and consistency
+
+- **可用性与一致性 availiblity and consistency**
   - 即本节要讨论的内容
 
 ## 怎么做
 
 CAP is a "three choices, pick two" scenario. In the presence of a network partition,a distributed system must choose either Consistency or Availability:
 
-- choose consistency: 当网络不完全可靠，出现故障，取消操作，保证一致性，但会降低可用性，用户可能会收到超时错误
+- choose consistency: 当网络不完全可靠，出现故障，**取消操作**，保证一致性，但会降低可用性，用户可能会收到超时错误
   - > Waiting for a response from the partitioned node might result in a timeout error. CP is a good choice if your business needs require **atomic reads and writes**.
   - > An atomic operation is, by definition, a single operation that either succeeds completely or fails completely
 - choose availability: 保证可用，返回旧信息。但是这不是一致的
@@ -886,9 +898,8 @@ CAP is a "three choices, pick two" scenario. In the presence of a network partit
 
 ## 有什么问题？
 
-当没有network partitions的时候怎么选？
+当没有network partitions的时候，大部分情况下，分区是平稳运行的，并不会出错，这时候该怎么选？
 其次，保证可用的情况下，如果需要很长时间返回，虽然可用，但是业务可能无法接受。
-大部分情况下，分区是平稳运行的，并不会出错，这时候该怎么选？
 
 ## ref
 
@@ -919,8 +930,9 @@ P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency
 Ref:
 <https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052>
 
+# Client-Server Communication I --> Network
 
-# Client-Sever Communication --> Long-Polling vs WebSocket vs Server-Sent events
+# Client-Sever Communication II --> Long-Polling vs WebSocket vs Server-Sent events
 
 ## What is
 
@@ -993,6 +1005,8 @@ Scenario(best when we need real-time traffic from the server):
 ## ref
 
 <https://medium.com/must-know-computer-science/system-design-client-server-communication-674818ca448d>
+
+
 
 # Bloom filter
 
@@ -1106,3 +1120,39 @@ Algorithm, DB, Corner case. 注意tradeOFF.
 - <https://medium.com/must-know-computer-science>
 - <http://www.ayqy.net/blog/category/back-end/>
 - <https://github.com/donnemartin/system-design-primer>
+
+# Ways to support High availibility
+
+有两种方法可以支撑高可用性：
+
+- fail-over
+  - active-passive(master-slave failover):
+    - there is master server, it regularly send hearbeat signal to the backup server. Once master is down, backup server takes over and resume the service
+  - active-active(master-master failover):
+    - there are two main servers, and they are all managing the traffic
+    - LB
+  - failover不好的地方在于：
+    - 增加硬件，增加复杂度
+    - potential of loss of data
+
+- replication
+  - 见replication章节
+
+如何评价和计算availablity：
+
+- 99.99 vs 99.9
+  - <https://azure.microsoft.com/en-us/support/legal/sla/summary/>
+- parallel vs in sequence if a system has many components and each components has a chance to fail, then the overall availability are:
+  - parallel:
+
+    ```
+    Availability (Total) = 1 - (1 - Availability (Foo)) * (1 - Availability (Bar))
+    ```
+
+  - in sequence :
+
+    ```
+    Availability (Total) = Availability (Foo) * Availability (Bar)
+    ```
+
+***

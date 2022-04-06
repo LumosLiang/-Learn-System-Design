@@ -11,11 +11,13 @@ Everything is a trade-off
 
 特性和特性比较
 每一个components：
+
 - LB, CACHE, DNS, CDN, Application server(microservice), web server, message queue, DB.
 
 理念, heartbeat, lead and folower, CAP, PACELC.
 
 client端连接 - communication
+
 - TLS/SSL, TCP, UDP
 - https
 - API, RPC, RESTfull, SOAP
@@ -451,11 +453,6 @@ Another advantage of a proxy server is that its cache can serve a lot of request
 - <https://serverfault.com/questions/127021/what-is-the-difference-between-load-balancer-and-reverse-proxy>
 - <https://stackoverflow.com/questions/59782057/what-is-the-difference-between-reverse-proxy-and-load-balancer>
 
-
-
-
-
-
 # DB
 
 ## SQL and NoSQL
@@ -505,7 +502,7 @@ MySQL, Oracle, MS SQL Server, SQLite, Postgres and MariaDB
 - 就把一部分的工作从数据库转移到了应用层面。
 - 应用层更容易横向扩展，这种转移有助于提升系统的可扩展性
 
-###  SQL and NoSQL比较
+### SQL and NoSQL比较
 
 | Type      | SQL | No-SQL |
 | ----------- | ----------- | ----------- |
@@ -563,7 +560,6 @@ When CRUD happen, index are also need to be updated.
 - <https://docs.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver15>
 
 DB scale
-
 
 ## Redundancy and Replication
 
@@ -775,7 +771,6 @@ SQL tuning
 - On some systems, writing to the master can spawn multiple threads to write in parallel, whereas read replicas only support writing sequentially with a single thread.
 - Replication adds more hardware and additional complexity.
 
-
 ## An important feature: Consistant hashing
 
 # Caching
@@ -930,7 +925,83 @@ P(partition) + A(Availability) + C(Consistency) + Else(no partition) + L(Latency
 Ref:
 <https://cloud.tencent.com/developer/article/1811555?from=article.detail.1585052>
 
-# Client-Server Communication I --> Network
+# Client-Server Communication I
+
+Network Protocol and Web communication in application layer
+
+## OSI(Open system interconnection) 7
+
+- Application
+- Presetation
+- Session
+- Transport
+- Network
+- Data link
+- Physical
+
+## HTTP, TCP, UDP
+
+> HTTP is an application layer protocol relying on lower-level protocols such as TCP and UDP.
+
+TCP:
+
+- connection-oriented protocol
+- 自动重传，sequence number，ack, ack number， check sum这些机制和特点保证了数据能够按照数据依次的传递
+- congestion control, flow control
+
+UDP:
+
+- connectionless
+- not care about if received or not. not care of the order
+
+选择：需要稳定的，完整的数据传输，选择TCP；需要高效率的，低延迟的数据传输，选择UDP
+
+## RPC
+
+是什么:
+
+- it is a request-response protocol。
+- remote procedure control 远程过程调用，“过程”在这里可以理解成函数或者方法。所以RPC，是远程调用其他机器或者是进程上的方法和函数。
+- Focus on exposing the behavior
+
+过程：
+
+- client cause a procedure, those were push into a stack like a local procedure call
+- Marshall them into a request message(either on TCP level or HTTP level)
+- OS send them through communication module to server
+- Server pass those packet to server module 
+- Unmarshall them, call the server procedure to do something
+- After get a result, return back to the client
+
+https://segmentfault.com/a/1190000020718552
+
+- > 调用方（Client）通过本地的 RPC 代理（Proxy）调用相应的接口
+- > 本地代理将 RPC 的服务名，方法名和参数等等信息转换成一个标准的 RPC Request 对象交给 RPC 框架
+- > RPC 框架采用 RPC 协议（RPC Protocol）将 RPC Request 对象序列化成二进制形式，然后通过 TCP 通道传递给服务提供方 （Server）
+- > 服务端（Server）收到二进制数据后，将它反序列化成 RPC Request 对象
+- > 服务端（Server）根据 RPC Request 中的信息找到本地对应的方法，传入参数执行，得到结果，并将结果封装成 RPC Response 交给 RPC 框架
+- > RPC 框架通过 RPC 协议（RPC Protocol）将 RPC Response 对象序列化成二进制形式，然后通过 TCP 通道传递给服务调用方（Client）
+- > 调用方（Client）收到二进制数据后，将它反序列化成 RPC Response 对象，并且将结果通过本地代理（Proxy）返回给业务代码
+
+## REST
+
+- Resource oriented， focusing on **exposing the data.**
+- 是风格，不是协议，也不是框架
+- 有以下几个特点：
+  - 利用现有的HTTP method
+  - URL resource, without operation
+  - 用现有的http status code来表达回复
+  - HATEOAS
+
+## REST VS RPC
+  
+- RPC：security, high performance, enterprise software
+- rest: 
+
+## REF
+- https://segmentfault.com/a/1190000020718552
+- https://segmentfault.com/a/1190000038419518
+
 
 # Client-Sever Communication II --> Long-Polling vs WebSocket vs Server-Sent events
 
@@ -1005,8 +1076,6 @@ Scenario(best when we need real-time traffic from the server):
 ## ref
 
 <https://medium.com/must-know-computer-science/system-design-client-server-communication-674818ca448d>
-
-
 
 # Bloom filter
 
